@@ -15,6 +15,10 @@
   :plugins [[lein-cljsbuild "1.1.7"]]
   :test-paths ["test/clj"]
   :source-paths ["src/clj"]
+  :profiles
+  {:dev
+   {:plugins
+    [[com.jakemccrary/lein-test-refresh "0.23.0"]]}}
   :cljsbuild
   {
    :builds
