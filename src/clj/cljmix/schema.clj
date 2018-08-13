@@ -5,7 +5,8 @@
             [clojure.edn :as edn]
             [clj-http.client :as http]
             [cheshire.core :as json]
-            [com.stuartsierra.component :as component]))
+            [com.stuartsierra.component :as component])
+  (:import (java.security MessageDigest)))
 
 (defn get-keys
   []
@@ -21,31 +22,32 @@
 
 ; https://gist.github.com/jizhang/4325757
 (defn md5 [^String s]
-  (let [algorithm (java.security.MessageDigest/getInstance "MD5")
+  (let [algorithm (MessageDigest/getInstance "MD5")
         raw (.digest algorithm (.getBytes s))]
     (format "%032x" (BigInteger. 1 raw))))
 
 (defn marvel-url
   [path]
-  (let [{pub-key :public priv-key :private} api-keys
+  (let [{pub-key :public private-key :private} api-keys
         ts (System/currentTimeMillis)
         hash-in (str
                   ts
-                  priv-key
+                  private-key
                   pub-key)
         hashed (md5 hash-in)
         url
-         (str host
-           path
-           "?ts="
-           ts
-           "&apikey="
-           pub-key
-           "&hash="
-           hashed)]
+        (str host
+             path
+             "?ts="
+             ts
+             "&apikey="
+             pub-key
+             "&hash="
+             hashed)]
     url))
 
 (defonce caches (atom {}))
+(deref caches)
 
 (defn marvel-req [path]
   (let [cache (deref caches)
@@ -59,30 +61,67 @@
         body (-> resp
                  (get :body)
                  (json/parse-string true))]
-    (prn (:status resp) etag last-tag)
-    (:data (case (:status resp)
-             304 (get-in cache [path :body])
-             (do
-               (swap! caches
-                 (fn [v]
-                   (assoc v path
-                     {:tag etag
-                      :body body})))
-               body)))))
+    (prn "wut" resp)
+    (case (:status resp)
+      304 (get-in cache [path :body])
+      (do
+        (swap! caches
+               (fn [v]
+                 (assoc v path
+                          {:tag  etag
+                           :body body})))
+        body))))
 
 (defn resolver-map
-  [component]
-  {:query/comics (fn [cxt args val]
-                   (let [resp (marvel-req "v1/public/comics")]
-                     resp))})
+  [_]
+  {:queries/getComicsCollection
+   (fn [_ _ _]
+     (marvel-req "v1/public/comics"))
+   :queries/getCreatorCollection
+   (fn [_ _ _]
+     (marvel-req "v1/public/creators"))
+   :queries/getSeriesCollection
+   (fn [_ _ _]
+     (marvel-req "v1/public/series"))
+   :queries/getEventsCollection
+   (fn [_ _ _]
+     (marvel-req "v1/public/events"))
+   :queries/getStoryCollection
+   (fn [_ _ _]
+     (marvel-req "v1/public/stories"))})
+
+(defn get-schema-edn []
+  (-> (io/resource "gen-schema.edn")
+      slurp
+      edn/read-string))
+
+(defn get-object-resolves-needed
+  "Lazy way to get resolve functions we don't have."
+  [schema]
+  (->>
+    schema
+    :objects
+    vals
+    (map :fields)
+    (map vals)
+    flatten
+    (filter (comp some? :resolve))))
 
 (defn load-schema
   [component]
-  (-> (io/resource "marvel-schema.edn")
-      slurp
-      edn/read-string
-      (util/attach-resolvers (resolver-map component))
-      schema/compile))
+  (let [schema-edn (get-schema-edn)
+        placeholders (->> (get-object-resolves-needed schema-edn)
+                          (map (fn [{:keys [resolve] :as field}]
+                                 [resolve (fn [_ args _]
+                                            (marvel-req "/v1/public/`")
+                                            (prn "call" resolve args)
+                                            [])]))
+                          (into {}))]
+    (-> schema-edn
+        (util/attach-resolvers
+          (merge (resolver-map component) placeholders))
+        schema/compile)))
+
 
 (defrecord SchemaProvider [schema]
 
@@ -97,3 +136,5 @@
 (defn new-schema-provider
   []
   {:schema-provider (map->SchemaProvider {})})
+
+(new-schema-provider)

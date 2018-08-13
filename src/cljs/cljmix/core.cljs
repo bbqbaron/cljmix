@@ -9,7 +9,7 @@
 (rf/dispatch [::gql/init {:ws-url nil}])
 
 (def my-query
-  [:comics
+  [:getComicsCollection
    [:results
     [:id :digitalId :description :title
      :images [:path :extension]

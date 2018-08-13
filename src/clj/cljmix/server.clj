@@ -7,13 +7,15 @@
 
   component/Lifecycle
   (start [this]
+    (prn "starting?")
     (assoc this :server (-> schema-provider
                             :schema
                             (lp/service-map {:graphiql true
                                              :ide-path "/graphiql"})
                             (assoc ::http/resource-path "/public")
                             http/create-server
-                            http/start)))
+                            http/start
+                            ((fn [x] (prn "hm" x) x)))))
 
   (stop [this]
     (http/stop server)
@@ -22,5 +24,6 @@
 
 (defn new-server
   []
+  (prn "new server")
   {:server (component/using (map->Server {})
                             [:schema-provider])})

@@ -18,7 +18,9 @@
   :profiles
   {:dev
    {:plugins
-    [[com.jakemccrary/lein-test-refresh "0.23.0"]]}}
+    [[com.jakemccrary/lein-test-refresh "0.23.0"]]
+    :dependencies
+    [[org.clojure/tools.namespace "0.2.11"]]}}
   :cljsbuild
   {
    :builds

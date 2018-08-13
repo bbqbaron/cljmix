@@ -14,4 +14,4 @@ resources/public/cljs
 resources/test
 .idea
 node_modules
-gen-schema.edn
+resources/gen-schema.edn
