@@ -105,9 +105,14 @@
      after-path]))
 
 (def parent-to-relevant-type
-  "Map parent ending strings to the paths in their typedefs
-  that contain the reference to the actual _data_ they return,
-  ie not limit/count/other meta fields."
+  "Map type names by their ending strings
+  to getters for their typedefs
+  that contain the reference to the next lower level of
+  actual _data_ they return,
+  ie not limit/count/other meta fields.
+
+  e.g. ComicDataWrapper -> ComicDataContainer,
+  ComicDataContainer -> Comic."
   {"Wrapper"   #(get-in % [:data :type])
    "Container" #(second (get-in % [:results :type]))})
 
@@ -203,4 +208,4 @@
     (println (cheshire.core/generate-string s) "\n")
     (print-schema s))
   (catch Exception e
-    (prn "nooo" e)))
+    (prn "failed to load schema with" e)))

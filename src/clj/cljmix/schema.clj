@@ -76,7 +76,6 @@
     (let [path
           ; TODO don't blow up on 404, for resilience
           (filter some? (list "" "v1" "public" entity-root (:id parent) sub-entity))]
-      (prn "edge" path args parent)
       (marvel-req
         (clojure.string/join
           "/"
