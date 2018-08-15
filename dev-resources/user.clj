@@ -36,7 +36,7 @@
 (defn start
   []
   (alter-var-root #'system component/start-system)
-  (browse-url "http://localhost:8888")
+  (browse-url "http://localhost:8888/graphiql")
   :started)
 
 (defn stop

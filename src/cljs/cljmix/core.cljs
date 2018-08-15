@@ -39,7 +39,6 @@
 (rf/reg-event-db
   ::query-result
   (fn [db [_ payload]]
-    (prn payload)
     (assoc db :data (:data payload))))
 
 (rf/dispatch [::gql/query
@@ -62,7 +61,6 @@
   [:div
    [:h1 @(rf/subscribe [:name])]
    (let [data @(rf/subscribe [:data])]
-     (prn "hm" data)
      (map-indexed
        (fn [i c] [:p {:key i} "Comic: " (:title c)])
        (get-in data [:comics :results])))])

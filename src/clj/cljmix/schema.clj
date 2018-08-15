@@ -61,7 +61,6 @@
         body (-> resp
                  (get :body)
                  (json/parse-string true))]
-    (prn "wut" resp)
     (case (:status resp)
       304 (get-in cache [path :body])
       (do
@@ -72,23 +71,39 @@
                            :body body})))
         body))))
 
+(defn edge-resolver [entity-root sub-entity]
+  (fn [_ args parent]
+    (let [path
+          ; TODO don't blow up on 404, for resilience
+          (filter some? (list "" "v1" "public" entity-root (:id parent) sub-entity))]
+      (prn "edge" path args parent)
+      (marvel-req
+        (clojure.string/join
+          "/"
+          path)))))
+
 (defn resolver-map
   [_]
   {:queries/getComicsCollection
-   (fn [_ _ _]
-     (marvel-req "v1/public/comics"))
+                  (fn [_ _ _]
+                    (marvel-req "v1/public/comics"))
+   :queries/getCharacterCollection
+                  (fn [_ _ _]
+                    (marvel-req "v1/public/characters"))
    :queries/getCreatorCollection
-   (fn [_ _ _]
-     (marvel-req "v1/public/creators"))
+                  (fn [_ _ _]
+                    (marvel-req "v1/public/creators"))
    :queries/getSeriesCollection
-   (fn [_ _ _]
-     (marvel-req "v1/public/series"))
+                  (fn [_ _ _]
+                    (marvel-req "v1/public/series"))
    :queries/getEventsCollection
-   (fn [_ _ _]
-     (marvel-req "v1/public/events"))
+                  (fn [_ _ _]
+                    (marvel-req "v1/public/events"))
    :queries/getStoryCollection
-   (fn [_ _ _]
-     (marvel-req "v1/public/stories"))})
+                  (fn [_ _ _]
+                    (marvel-req "v1/public/stories"))
+   :edge-resolver edge-resolver})
+
 
 (defn get-schema-edn []
   (-> (io/resource "gen-schema.edn")
@@ -107,14 +122,13 @@
     flatten
     (filter (comp some? :resolve))))
 
+; TODO remove this
 (defn load-schema
   [component]
   (let [schema-edn (get-schema-edn)
         placeholders (->> (get-object-resolves-needed schema-edn)
                           (map (fn [{:keys [resolve] :as field}]
                                  [resolve (fn [_ args _]
-                                            (marvel-req "/v1/public/`")
-                                            (prn "call" resolve args)
                                             [])]))
                           (into {}))]
     (-> schema-edn
