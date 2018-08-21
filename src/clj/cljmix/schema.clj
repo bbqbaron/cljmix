@@ -49,27 +49,50 @@
 (defonce caches (atom {}))
 (deref caches)
 
-(defn marvel-req [path]
-  (let [cache (deref caches)
-        last-tag (get-in cache [path :tag])
-        resp (http/get
-               (marvel-url path)
-               (if (some? last-tag)
-                 {:headers {"If-None-Match" last-tag}}
-                 {}))
-        etag (get-in resp [:headers "ETag"])
-        body (-> resp
-                 (get :body)
-                 (json/parse-string true))]
-    (case (:status resp)
-      304 (get-in cache [path :body])
-      (do
-        (swap! caches
-               (fn [v]
-                 (assoc v path
-                          {:tag  etag
-                           :body body})))
-        body))))
+; super lazy; holds outright results by the exact hash of the request
+; mostly for testing over and over
+(defonce lazy-cache (atom {}))
+
+(defn with-lazy-cache [url args otherwise]
+  (let [hash-path [(hash url) (hash args)]
+        found (get-in @lazy-cache hash-path)]
+    (when (some? found)
+      (println "returning" url args "from cache"))
+    (or found
+        (otherwise))))
+
+(defn marvel-req
+  ([path] (marvel-req path nil))
+  ([path query]
+   (println "marvel req: " path query)
+   (with-lazy-cache path query
+     (fn [] (let [cache (deref caches)
+                  last-tag (get-in cache [path :tag])
+                  headers (if (some? last-tag)
+                           {"If-None-Match" last-tag})
+                  resp (http/get
+                         (marvel-url path)
+                         {:headers headers
+                          :query-params query})
+                  etag (get-in resp [:headers "ETag"])
+                  body (-> resp
+                           (get :body)
+                           (json/parse-string true))]
+              (case (:status resp)
+                304
+                (do
+                  (let [hash-path [(hash path) (hash query)]]
+                    (swap! lazy-cache assoc-in hash-path (get-in cache [path :body])))
+                  (get-in cache [path :body]))
+                (do
+                  (let [hash-path [(hash path) (hash query)]]
+                    (swap! lazy-cache assoc-in hash-path body))
+                  (swap! caches
+                         (fn [v]
+                           (assoc v path
+                                    {:tag  etag
+                                     :body body})))
+                  body)))))))
 
 (defn edge-resolver [entity-root sub-entity]
   (fn [_ args parent]
@@ -79,16 +102,20 @@
       (marvel-req
         (clojure.string/join
           "/"
-          path)))))
+          path)
+        args))))
 
 (defn resolver-map
   [_]
+  ; TODO these are all just `edge-resolver` with no parent id!
   {:queries/getComicsCollection
-                  (fn [_ _ _]
-                    (marvel-req "v1/public/comics"))
+                  (fn [_ args _]
+                    (marvel-req "v1/public/comics"
+                                args))
    :queries/getCharacterCollection
-                  (fn [_ _ _]
-                    (marvel-req "v1/public/characters"))
+                  (fn [_ args _]
+                    (marvel-req "v1/public/characters"
+                                args))
    :queries/getCreatorCollection
                   (fn [_ _ _]
                     (marvel-req "v1/public/creators"))

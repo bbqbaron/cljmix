@@ -14,7 +14,7 @@
                  [re-graph "0.1.5"]]
   :plugins [[lein-cljsbuild "1.1.7"]]
   :test-paths ["test/clj"]
-  :source-paths ["src/clj"]
+  :source-paths ["src/clj", "src/cljc"]
   :profiles
   {:dev
    {:plugins
@@ -25,13 +25,13 @@
   {
    :builds
    {:client {
-             :source-paths ["src/cljs"]
+             :source-paths ["src/cljs" "src/cljc"]
              :compiler     {:main       cljmix.core
                             :asset-path "cljs/out"
                             :output-to  "resources/public/cljs/main.js"
                             :output-dir "resources/public/cljs/out"}}
     :test
-            {:source-paths   ["src/cljs" "test/cljs"]
+            {:source-paths   ["src/cljs" "src/cljc" "test/cljs"]
              :notify-command ["node" "jsdom-runner.js"]
              :compiler       {:main          cljmix.runner
                               :output-to     "resources/test/js/test.js"

@@ -203,9 +203,6 @@
         add-query-resolvers
         (dissoc :apis))))
 
-(try
-  (let [s (xform-schema (get-json))]
-    (println (cheshire.core/generate-string s) "\n")
-    (print-schema s))
-  (catch Exception e
-    (prn "failed to load schema with" e)))
+(let [s (xform-schema (get-json))]
+  (println (cheshire.core/generate-string s) "\n")
+  (print-schema s))
