@@ -1,26 +1,6 @@
 (ns cljmix.gql
   (:require [clojure.walk :as walk]))
 
-(defn my-query [char-name]
-  [:getCharacterCollection
-   [:args :nameStartsWith char-name]
-   [:data
-    [:results
-     [:name
-      :thumbnail
-      [:extension :path]
-      :getComicsCharacterCollection
-      ; TODO enum of orderBy allowedValues
-      [:args :hasDigitalIssue true :orderBy "onsaleDate"]
-      [:data
-       [:results
-        [:digitalId
-         :description
-         :title
-         :series [:name :resourceURI]
-         :thumbnail [:extension :path]
-         :images [:extension :path]]]]]]]])
-
 (defn to-query-string
   [q]
   (walk/postwalk
@@ -46,5 +26,3 @@
         true
         x))
    q))
-
-(prn (to-query-string (my-query "Cyclops")))

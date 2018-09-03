@@ -5,7 +5,8 @@
             [clojure.edn :as edn]
             [clj-http.client :as http]
             [cheshire.core :as json]
-            [com.stuartsierra.component :as component])
+            [com.stuartsierra.component :as component]
+            prevayler)
   (:import (java.security MessageDigest)))
 
 (defn get-keys
@@ -66,33 +67,33 @@
   ([path query]
    (println "marvel req: " path query)
    (with-lazy-cache path query
-     (fn [] (let [cache (deref caches)
-                  last-tag (get-in cache [path :tag])
-                  headers (if (some? last-tag)
-                           {"If-None-Match" last-tag})
-                  resp (http/get
-                         (marvel-url path)
-                         {:headers headers
-                          :query-params query})
-                  etag (get-in resp [:headers "ETag"])
-                  body (-> resp
-                           (get :body)
-                           (json/parse-string true))]
-              (case (:status resp)
-                304
-                (do
-                  (let [hash-path [(hash path) (hash query)]]
-                    (swap! lazy-cache assoc-in hash-path (get-in cache [path :body])))
-                  (get-in cache [path :body]))
-                (do
-                  (let [hash-path [(hash path) (hash query)]]
-                    (swap! lazy-cache assoc-in hash-path body))
-                  (swap! caches
-                         (fn [v]
-                           (assoc v path
-                                    {:tag  etag
-                                     :body body})))
-                  body)))))))
+                    (fn [] (let [cache (deref caches)
+                                 last-tag (get-in cache [path :tag])
+                                 headers (if (some? last-tag)
+                                           {"If-None-Match" last-tag})
+                                 resp (http/get
+                                        (marvel-url path)
+                                        {:headers      headers
+                                         :query-params query})
+                                 etag (get-in resp [:headers "ETag"])
+                                 body (-> resp
+                                          (get :body)
+                                          (json/parse-string true))]
+                             (case (:status resp)
+                               304
+                               (do
+                                 (let [hash-path [(hash path) (hash query)]]
+                                   (swap! lazy-cache assoc-in hash-path (get-in cache [path :body])))
+                                 (get-in cache [path :body]))
+                               (do
+                                 (let [hash-path [(hash path) (hash query)]]
+                                   (swap! lazy-cache assoc-in hash-path body))
+                                 (swap! caches
+                                        (fn [v]
+                                          (assoc v path
+                                                   {:tag  etag
+                                                    :body body})))
+                                 body)))))))
 
 (defn edge-resolver [entity-root sub-entity]
   (fn [_ args parent]
@@ -106,7 +107,7 @@
         args))))
 
 (defn resolver-map
-  [_]
+  []
   ; TODO these are all just `edge-resolver` with no parent id!
   {:queries/getComicsCollection
                   (fn [_ args _]
@@ -148,9 +149,28 @@
     flatten
     (filter (comp some? :resolve))))
 
-; TODO remove this
-(defn load-schema
-  [component]
+(def non-marvel-schema
+  {:queries
+   {:readHistory
+    {:type    '(non-null (list (non-null Int)))
+     :resolve :queries/readHistory}}
+   :mutations
+   {:markRead
+    {:args    {:digitalId {:type '(non-null Int)}}
+     :type    '(non-null (list (non-null Int)))
+     :resolve :mutation/markRead}}})
+
+(defn get-history [db]
+  (fn [_ _ _]
+    (:read @(:db db))))
+
+(defn update-history [db]
+  (fn [req ctx info]
+    (println req ctx info)
+    (:read (first (prevayler/handle! (:db db) [:mark-read (:digitalId req)])))))
+
+(defn raw-schema
+  [db-provider]
   (let [schema-edn (get-schema-edn)
         placeholders (->> (get-object-resolves-needed schema-edn)
                           (map (fn [{:keys [resolve] :as field}]
@@ -158,23 +178,29 @@
                                             [])]))
                           (into {}))]
     (-> schema-edn
+        (update :queries merge (:queries non-marvel-schema))
+        (update :mutations merge (:mutations non-marvel-schema))
         (util/attach-resolvers
-          (merge (resolver-map component) placeholders))
-        schema/compile)))
+          (merge
+            (resolver-map)
+            placeholders
+            {:queries/readHistory            (get-history db-provider)
+             :mutation/markRead              (update-history db-provider)
+             :queries/getCharacterIndividual (fn [_ _ _] nil)})))))
 
-
-(defrecord SchemaProvider [schema]
+(defrecord SchemaProvider [db-provider schema]
 
   component/Lifecycle
 
   (start [this]
-    (assoc this :schema (load-schema this)))
+    (assoc this :schema
+                (schema/compile (raw-schema db-provider))))
 
   (stop [this]
     (assoc this :schema nil)))
 
 (defn new-schema-provider
   []
-  {:schema-provider (map->SchemaProvider {})})
+  {:schema-provider (component/using (map->SchemaProvider {})
+                                     [:db-provider])})
 
-(new-schema-provider)

@@ -47,16 +47,22 @@
     (props-to-fields
       (:properties model))}])
 
-(defn type-map [apis]
+(defn api-map
+  "TODO this mashes the op itself and subops into one object.
+   you have to implicitly exclude :op and :path to get subops.
+   It's also order-dependent in that a subop before a parent
+   will be overwritten."
+  [apis]
   (reduce
     (fn [acc {:keys [path operations]}]
       (let [path-segs (clojure.string/split path #"\/")
-            [op] operations
+            [first-op] operations
             base-path (->> path-segs
                            (drop 1)
                            (map keyword)
-                           vec)]
-        (assoc-in acc base-path {:op op :path path})))
+                           vec)
+            api-path (interpose :subops base-path)]
+        (assoc-in acc api-path {:op first-op :path path})))
     {}
     apis))
 
@@ -137,11 +143,13 @@
       (let [parent-type (get-in schema [:objects parent-type-name])]
         (type-for-type-wrapper schema (get-child-path (get parent-type :fields)))))))
 
-
-(defn add-node-fields [schema parent-type node]
+(defn add-node-fields
+  " TODO: implicit path vars like {characterId} are not acknowledged as params
+  in :op. Need to infer from path construction. Look for {} :/ ?"
+  [schema parent-type node]
   (let [[field-name field-val] (field-from-op (:op node))
         return-type (keyword (get-in node [:op :responseClass]))
-        subfields (vals (dissoc node :op :path))]
+        subfields (vals (:subops node))]
     (as-> schema parent
           (let [type-path (type-for-type-wrapper schema parent-type)
                 subpath (flatten [:objects type-path :fields field-name])]
@@ -178,8 +186,23 @@
                 [k (assoc v :resolve (resolver-name k))])
               queries)))))
 
-(defn add-fields [schema]
-  (let [base-ops (vals (get-in schema [:apis :v1 :public]))]
+(defn api-node-for-path
+  [schema elements]
+  (->> elements
+       (interpose :subops)
+       (cons :apis)
+       (get-in schema)))
+
+(defn add-fields
+  "add fields to Query and all other types."
+  [schema]
+  (let [base-ops (-> (api-node-for-path schema [:v1 :public])
+                     :subops
+                     vals)
+        char-comics (dissoc
+                      (api-node-for-path schema
+                                         [:v1 :public :characters (keyword "{characterId}")])
+                      :subops)]
     (reduce
       (fn [acc node]
         (add-node-fields
@@ -187,22 +210,30 @@
           :Query
           node))
       schema
-      base-ops)))
+      (cons char-comics base-ops))))
 
-(defn xform-schema [{:keys [models] :as schema}]
+(defn xform-raw
+  "Convert marvel json to a gql-ish representation
+  of pure objects and top-level operations,
+  without resolvers or edges. Ie, not connected to each other."
+  [{:keys [models] :as schema}]
   (let [objects (into {} (map xform-model (vals models)))]
-    (-> {:objects objects
-         :apis    (type-map (:apis schema))}
-        add-fields
-        ; handle special case of :queries
-        ((fn [x]
-           (-> x
-               (assoc :queries
-                      (get-in x [:objects :Query :fields]))
-               (update :objects dissoc :Query))))
-        add-query-resolvers
-        (dissoc :apis))))
+    {:objects objects
+     :apis    (api-map (:apis schema))}))
 
-(let [s (xform-schema (get-json))]
-  (println (cheshire.core/generate-string s) "\n")
-  (print-schema s))
+(defn xform-schema [schema]
+  (-> (xform-raw schema)
+      add-fields
+      (dissoc :apis)
+      ; handle special case of :queries
+      ((fn [x]
+         (-> x
+             (assoc :queries
+                    (get-in x [:objects :Query :fields]))
+             (update :objects dissoc :Query))))
+      add-query-resolvers))
+
+(defn create-schema []
+  (let [s (xform-schema (get-json))]
+    (println (cheshire.core/generate-string s) "\n")
+    (print-schema s)))

@@ -4,7 +4,7 @@
 
 (t/deftest test-query-string
   (t/is (=
-          (c/to-query-string c/my-query)
+          (c/to-query-string c/char-query)
           "")))
 
 

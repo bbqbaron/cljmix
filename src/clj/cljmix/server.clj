@@ -3,17 +3,19 @@
             [com.walmartlabs.lacinia.pedestal :as lp]
             [io.pedestal.http :as http]))
 
-(defrecord Server [schema-provider server]
+(defn build-server [schema-provider]
+  (-> schema-provider
+      :schema
+      (lp/service-map {:graphiql true
+                       :ide-path "/graphiql"})
+      (assoc ::http/resource-path "/public")
+      http/create-server
+      http/start))
 
+(defrecord Server [schema-provider server]
   component/Lifecycle
   (start [this]
-    (assoc this :server (-> schema-provider
-                            :schema
-                            (lp/service-map {:graphiql true
-                                             :ide-path "/graphiql"})
-                            (assoc ::http/resource-path "/public")
-                            http/create-server
-                            http/start)))
+    (assoc this :server (build-server schema-provider)))
 
   (stop [this]
     (http/stop server)
