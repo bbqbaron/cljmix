@@ -1,14 +1,15 @@
 (ns cljmix.util)
 
 (defn uniq-by [key-fn ls]
-  (loop [acc {} rem ls]
+  (loop [acc [] rem ls seen #{}]
     (let [next (first rem)]
       (if (nil? next)
-        (vals acc)
+        acc
         (let [key (key-fn next)]
           (recur
-            (if (contains? acc key)
+            (if (contains? seen key)
               acc
-              (assoc acc key next))
-            (rest rem)))))))
+              (conj acc next))
+            (rest rem)
+            (conj seen key)))))))
 

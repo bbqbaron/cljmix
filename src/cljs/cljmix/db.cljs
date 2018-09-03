@@ -35,5 +35,6 @@
     (update-in db
                ; TODO not this
                [:data :getCharacterCollection :data :results 0 :getComicsCharacterCollection :data :results]
-               (partial add-comics
-                        (get-in payload [:data :getComicsCollection :data :results])))))
+               #(add-comics
+                  %
+                  (get-in payload [:data :getComicsCollection :data :results])))))
