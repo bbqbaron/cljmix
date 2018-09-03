@@ -10,11 +10,17 @@
 (rf/reg-event-db
   :char-result
   (fn [db [_ payload]]
-    (assoc db :characters
-              (->> payload
-                   (#(get-in % [:data :getCharacterCollection :data :results]))
-                   (map (fn [char] [(:id char) char]))
-                   (into {})))))
+    (let [new-chars (->> payload
+                         (#(get-in % [:data :getCharacterCollection :data :results]))
+                         (map (fn [char] [(:id char) char]))
+                         (into {}))
+          first-id (first (keys new-chars))]
+      (-> db
+          (update :characters
+                  merge
+                  new-chars)
+          (assoc :char-id
+                 first-id)))))
 
 (rf/reg-event-db
   :read-history-result

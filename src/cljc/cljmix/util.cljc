@@ -1,5 +1,10 @@
 (ns cljmix.util)
 
+(defn default-to
+  "AKA coalesce."
+  [val other]
+  (or val other))
+
 (defn uniq-by
   "Produce a vector of objects unique by a supplied function,
   preserving order. The first object with a given key wins, naturally."
