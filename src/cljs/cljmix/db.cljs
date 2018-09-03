@@ -8,9 +8,13 @@
     db))
 
 (rf/reg-event-db
-  :query-result
+  :char-result
   (fn [db [_ payload]]
-    (assoc db :data (:data payload))))
+    (assoc db :characters
+              (->> payload
+                   (#(get-in % [:data :getCharacterCollection :data :results]))
+                   (map (fn [char] [(:id char) char]))
+                   (into {})))))
 
 (rf/reg-event-db
   :read-history-result
@@ -20,8 +24,9 @@
 (rf/reg-event-db
   :marked-read
   (fn [db [_ payload]]
-    (println "marked-read" payload)
-    db))
+    (assoc db
+      :read-history
+      (set (get-in payload [:data :markRead])))))
 
 (defn add-comics
   [c1 c2]
@@ -30,11 +35,16 @@
 
 (rf/reg-event-db
   :comics-result
-  (fn [db [_ payload]]
-    (println "new comics" payload)
+  (fn [db [_ char-id payload]]
     (update-in db
                ; TODO not this
-               [:data :getCharacterCollection :data :results 0 :getComicsCharacterCollection :data :results]
+               [:characters char-id :getComicsCharacterCollection :data :results]
                #(add-comics
                   %
                   (get-in payload [:data :getComicsCollection :data :results])))))
+
+(rf/reg-event-db
+  :pick-character
+  (fn [db [_ char-id]]
+    (assoc db :char-id char-id)))
+

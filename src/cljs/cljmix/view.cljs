@@ -7,13 +7,54 @@
             cljmix.fx
             cljmix.sub))
 
+(def button-link-style
+  {:font             "bold 11px Arial"
+   :text-decoration  "none"
+   :background-color "#EEEEEE"
+   :color            "#333333"
+   :padding          "2px 6px 2px 6px"
+   :border-top       "1px solid #CCCCCC"
+   :border-right     "1px solid #333333"
+   :border-bottom    "1px solid #333333"
+   :border-left      "1px solid #CCCCCC"})
+
+(defn grid [els]
+  [:div
+   {:style {:display               "grid"
+            :grid-template-columns "1fr 1fr 1fr 1fr"
+            :grid-template-rows    "1fr 1fr 1fr 1fr"}}
+   els])
+
+(defn choose-character []
+  (let [char-id (:id @(rf/subscribe [:char]))
+        char-ids @(rf/subscribe [:char-ids])]
+    [:select
+     {:value     (or char-id "")
+      :on-change (fn [e]
+                   (let [val (-> e .-target .-value
+                                 (js/parseInt 10))]
+                     (rf/dispatch [:pick-character val])))}
+     (cons
+       [:option {:value "" :key "empty"} ""]
+       (map
+         (fn [char-id] [:option {:value char-id :key char-id} char-id])
+         char-ids))]))
+
 (defn show-comic [i c]
   (let [read-history @(rf/subscribe [:read-history])]
     [:div
-     {:key i}
+     {:style {:display "flex" :flexDirection "column"}
+      :key   i}
+     (let [thumb (:thumbnail c)]
+       [:img {:src   (str (:path thumb) "." (:extension thumb))
+              :style {
+                      :width  "220px"
+                      :height "340px"}
+              :alt   (:title c)}])
      [:a {:key    i
           :href   (str "https://read.marvel.com/#/book/" (:digitalId c))
-          :target "_blank"}
+          :target "_blank"
+          :style  button-link-style}
       (:title c)]
      [:button
       {:on-click #(rf/dispatch [::gql/mutate
@@ -22,13 +63,7 @@
                                 [:marked-read]])}
       "Already read it"]
      (when (contains? read-history (:digitalId c))
-       "ALREADY READ IT")
-     (let [thumb (:thumbnail c)]
-       [:img {:src   (str (:path thumb) "." (:extension thumb))
-              :style {
-                      :width  "60px"
-                      :height "85px"}
-              :alt   (:title c)}])]))
+       "ALREADY READ IT")]))
 
 (defn comics-footer [char]
   (let [comics-query (get-in char [:getComicsCharacterCollection :data])
@@ -42,11 +77,10 @@
             "Done")]))
 
 (defn show-comix [char]
-  (println "uh" char)
   (let [comics (get-in char [:getComicsCharacterCollection :data :results])]
     [:div
-     (doall (map-indexed
-              show-comic
-              comics))
+     [grid (doall (map-indexed
+                    show-comic
+                    comics))]
      [comics-footer char]]))
 

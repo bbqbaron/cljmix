@@ -17,28 +17,27 @@
               {}
               [:read-history-result]])
 
+(query/search-char "Colossus")
+
 (defn ui
   []
   (let [search (ra/atom "")]
     (fn []
-      (let [data @(rf/subscribe [:query-result])
-            results (get-in data [:getCharacterCollection :data :results])]
-        (println "using data" data)
-        [:form
-         {:on-submit #(.preventDefault %)}
-         [:input {:type       "text" :placeholder "Find a character!" :value @search
-                  :auto-focus true
-                  :on-change  #(reset! search (-> % .-target .-value))}]
-         [:button {:on-click #(query/search-char @search)
-                   :type     :submit}
-          "GO"]
-         (doall
-           (map
-             (fn [char]
-               [:div {:key (:name char)}
-                [:h2 (str "Char: " (:name char))]
-                [vw/show-comix char]])
-             results))]))))
+      (let [char @(rf/subscribe [:char])]
+        [:div
+         [vw/choose-character]
+         [:form
+          {:on-submit #(.preventDefault %)}
+          [:input {:type       "text" :placeholder "Find a character!" :value @search
+                   :auto-focus true
+                   :on-change  #(reset! search (-> % .-target .-value))}]
+          [:button {:on-click #(query/search-char @search)
+                    :type     :submit}
+           "GO"]]
+         (when char
+           [:div {:key (:name char)}
+            [:h2 (str "Char: " (:name char))]
+            [vw/show-comix char]])]))))
 
 
 (defn ^:export run

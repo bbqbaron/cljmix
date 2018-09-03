@@ -165,9 +165,8 @@
     (:read @(:db db))))
 
 (defn update-history [db]
-  (fn [req ctx info]
-    (println req ctx info)
-    (:read (first (prevayler/handle! (:db db) [:mark-read (:digitalId req)])))))
+  (fn [_ args _]
+    (:read (first (prevayler/handle! (:db db) [:mark-read (:digitalId args)])))))
 
 (defn raw-schema
   [db-provider]

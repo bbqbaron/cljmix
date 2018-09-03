@@ -37,8 +37,7 @@
                                             :description
                                             :title
                                             [:series [:name :resourceURI]]
-                                            [:thumbnail [:extension :path]]
-                                            [:images [:extension :path]]]]]]]]]}))
+                                            [:thumbnail [:extension :path]]]]]]]]]}))
 
 (def char-query
   (v/graphql-query {:venia/operation {:operation/name "GetCharacter"
@@ -70,8 +69,7 @@
                                                   :description
                                                   :title
                                                   [:series [:name :resourceURI]]
-                                                  [:thumbnail [:extension :path]]
-                                                  [:images [:extension :path]]]]]]]]]]]]]]]
+                                                  [:thumbnail [:extension :path]]]]]]]]]]]]]]]
                     :venia/variables [{:variable/name "charName"
                                        :variable/type :String!}
                                       {:variable/name "offset"
@@ -82,7 +80,7 @@
   (rf/dispatch [::gql/query
                 char-query
                 {:charName char-name}
-                [:query-result]]))
+                [:char-result]]))
 
 (defn get-comics
   [char-id offset]
@@ -90,4 +88,4 @@
                 char-comics
                 {:charIds [char-id]
                  :offset  offset}
-                [:comics-result]]))
+                [:comics-result char-id]]))

@@ -4,20 +4,14 @@
 
 (declare db)
 
-(defn log [tag f]
-  (fn [& args]
-    (println tag "got" args)
-    (let [res (apply f args)]
-      (println tag "produced" res)
-      res)))
-
 (defn reducer [state [event-type event-val]]
+  (println "reduce db" state event-type event-val)
   (let [new-state (case event-type
                     :mark-read (update state :read
-                                       (comp
-                                         (partial filter some?)
-                                         #(cons event-val %)
-                                         #(or % #{})))
+                                       (fn [old]
+                                         (filter some?
+                                                 (set
+                                                   (conj old event-val)))))
                     state)]
     [new-state true]))
 
@@ -26,7 +20,7 @@
   (start [this]
     (assoc this :db (prevayler! reducer)))
 
-  (stop [this]
+  (stop [_]
     (when (some? db)
       (.close db))))
 
