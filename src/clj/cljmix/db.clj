@@ -2,27 +2,33 @@
   (:require [prevayler :refer [prevayler!]]
             [com.stuartsierra.component :as component]))
 
-(declare db)
-
 (defn reducer [state [event-type event-val]]
-  (println "reduce db" state event-type event-val)
-  (let [new-state (case event-type
-                    :mark-read (update state :read
-                                       (fn [old]
-                                         (filter some?
-                                                 (set
-                                                   (conj old event-val)))))
-                    state)]
+  (let [new-state
+        (case event-type
+          :mark-read (update state :read
+                             (fn [old]
+                               (filter some?
+                                       (set
+                                         (conj old event-val)))))
+          :tag-cache
+          (let [{:keys [path result]} event-val]
+            (assoc-in state (cons :tag-cache path) result))
+          :server-cache
+          (let [{:keys [path body]} event-val]
+            (assoc-in state (cons :server-cache path) body))
+          state)]
     [new-state true]))
 
-(defrecord Db [db]
+(defrecord Db []
   component/Lifecycle
   (start [this]
     (assoc this :db (prevayler! reducer)))
 
-  (stop [_]
-    (when (some? db)
-      (.close db))))
+  (stop [this]
+    (let [db (:db this)]
+      (when (some? db)
+        (.close db)))
+    this))
 
 (defn new-db []
   {:db-provider (component/using (map->Db {})
