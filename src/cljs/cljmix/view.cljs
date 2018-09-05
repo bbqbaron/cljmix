@@ -37,8 +37,7 @@
      (cons
        [:option {:value "" :key "empty"} ""]
        (map
-         (fn [{id :id char-name :name :as char}]
-           (println "hm" char)
+         (fn [{id :id char-name :name}]
            [:option {:value id :key id} char-name])
          (vals chars)))]))
 
@@ -67,22 +66,21 @@
      (when (contains? read-history (:digitalId c))
        "ALREADY READ IT")]))
 
-(defn comics-footer [char]
-  (let [comics-query (get-in char [:getComicsCharacterCollection :data])
-        has-more (> (:total comics-query)
-                    (+ (:limit comics-query)
-                       (:offset comics-query)))]
+(defn comics-footer [comix-data]
+  (let [has-more (> (:total comix-data)
+                    (+ (:limit comix-data)
+                       (:offset comix-data)))]
     [:div (if has-more
             [:button {:on-click #(query/get-comics (:id char)
                                                    20)}
              "More"]
             "Done")]))
 
-(defn show-comix [char]
-  (let [comics (get-in char [:getComicsCharacterCollection :data :results])]
+(defn show-comix [comix-data]
+  (let [comics (get-in comix-data [:results])]
     [:div
      [grid (doall (map-indexed
                     show-comic
                     comics))]
-     [comics-footer char]]))
+     [comics-footer comix-data]]))
 

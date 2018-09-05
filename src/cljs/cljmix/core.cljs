@@ -37,7 +37,8 @@
          (when char
            [:div {:key (:name char)}
             [:h2 (str "Char: " (:name char))]
-            [vw/show-comix char]])]))))
+            [vw/show-comix
+             (get-in char [:getComicsCharacterCollection :data])]])]))))
 
 
 (defn ^:export run
