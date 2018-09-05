@@ -14,9 +14,7 @@
 (rf/reg-sub
   :char
   (fn [db _]
-    (println "wtf" (keys (:characters db)) (:char-id db)
-             (contains? (set (keys (:characters db)))
-                        (:char-id db)))
     (get-in db [:characters (:char-id db)])))
 
 (rf/reg-sub :char-ids (fn [db _] (keys (:characters db))))
+(rf/reg-sub :chars (fn [db _] (:characters db)))

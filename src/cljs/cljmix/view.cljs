@@ -27,7 +27,7 @@
 
 (defn choose-character []
   (let [char-id (:id @(rf/subscribe [:char]))
-        char-ids @(rf/subscribe [:char-ids])]
+        chars @(rf/subscribe [:chars])]
     [:select
      {:value     (or char-id "")
       :on-change (fn [e]
@@ -37,8 +37,10 @@
      (cons
        [:option {:value "" :key "empty"} ""]
        (map
-         (fn [char-id] [:option {:value char-id :key char-id} char-id])
-         char-ids))]))
+         (fn [{id :id char-name :name :as char}]
+           (println "hm" char)
+           [:option {:value id :key id} char-name])
+         (vals chars)))]))
 
 (defn show-comic [i c]
   (let [read-history @(rf/subscribe [:read-history])]
