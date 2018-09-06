@@ -2,7 +2,11 @@
   (:require [re-frame.core :as rf]))
 
 (rf/reg-event-fx
-  :mark-read
-  (fn [{db :db} [_ value]]
-    {:db         (assoc db :loading? true)}))
+  :subscribed
+  (fn [{db :db} [_ char-id _]]
+    (let [new-db (update db :subscribed-characters conj char-id)]
+      {:db       new-db
+       :dispatch (cljmix.query/get-feed
+                   0)})))
+
 

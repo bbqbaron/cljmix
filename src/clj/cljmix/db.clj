@@ -16,6 +16,8 @@
           :server-cache
           (let [{:keys [path body]} event-val]
             (assoc-in state (cons :server-cache path) body))
+          :subscribe-character
+          (update state :subscribed-characters #(conj (or % #{}) event-val))
           state)]
     [new-state true]))
 

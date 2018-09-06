@@ -13,18 +13,16 @@
 
 (rf/dispatch [::gql/init {:ws-url nil}])
 
-(rf/dispatch [::gql/query query/read-history
-              {}
-              [:read-history-result]])
-
-(query/search-char "Colossus")
+(rf/dispatch (query/get-feed 0))
 
 (defn ui
   []
   (let [page @(rf/subscribe [:page])]
-    (case page
-      :char [vw/char-search]
-      :queue [vw/queue])))
+    [:div
+     [vw/pages]
+     (case page
+       :page/char [vw/char-search]
+       :page/queue [vw/queue])]))
 
 (defn ^:export run
   []

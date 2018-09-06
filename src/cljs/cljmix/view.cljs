@@ -1,7 +1,6 @@
 (ns cljmix.view
   (:require [re-frame.core :as rf]
             [re-graph.core :as gql]
-            [cljmix.gql :refer [to-query-string]]
             [cljmix.query :as query]
             cljmix.db
             cljmix.fx
@@ -26,64 +25,37 @@
             :grid-template-rows    "1fr 1fr 1fr 1fr"}}
    els])
 
-(defn choose-character []
-  (let [char-id (:id @(rf/subscribe [:char]))
-        chars @(rf/subscribe [:chars])]
-    [:select
-     {:value     (or char-id "")
-      :on-change (fn [e]
-                   (let [val (-> e .-target .-value
-                                 (js/parseInt 10))]
-                     (rf/dispatch [:pick-character val])))}
-     (cons
-       [:option {:value "" :key "empty"} ""]
-       (map
-         (fn [{id :id char-name :name}]
-           [:option {:value id :key id} char-name])
-         (vals chars)))]))
+(defn characters []
+  (let [chars @(rf/subscribe [:char-search-result])]
+    [:div
+     (map
+       (fn [{id :id char-name :name}]
+         [:div {:key id}
+          [:p char-name]
+          [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"]])
+       (vals chars))]))
 
 (defn show-comic [i c]
-  (let [read-history @(rf/subscribe [:read-history])]
-    [:div
-     {:style {:display "flex" :flexDirection "column"}
-      :key   i}
-     (let [thumb (:thumbnail c)]
-       [:img {:src   (str (:path thumb) "." (:extension thumb))
-              :style {
-                      :width  "220px"
-                      :height "340px"}
-              :alt   (:title c)}])
-     [:a {:key    i
-          :href   (str "https://read.marvel.com/#/book/" (:digitalId c))
-          :target "_blank"
-          :style  button-link-style}
-      (:title c)]
-     [:button
-      {:on-click #(rf/dispatch [::gql/mutate
-                                query/mark-read
-                                {:digitalId (:digitalId c)}
-                                [:marked-read]])}
-      "Already read it"]
-     (when (contains? read-history (:digitalId c))
-       "ALREADY READ IT")]))
-
-(defn comics-footer [comix-data]
-  (let [has-more (> (:total comix-data)
-                    (+ (:limit comix-data)
-                       (:offset comix-data)))]
-    [:div (if has-more
-            [:button {:on-click #(query/get-comics (:id char)
-                                                   20)}
-             "More"]
-            "Done")]))
-
-(defn show-comix [comix-data]
-  (let [comics (get-in comix-data [:results])]
-    [:div
-     [grid (doall (map-indexed
-                    show-comic
-                    comics))]
-     [comics-footer comix-data]]))
+  [:div
+   {:style {:display "flex" :flexDirection "column"}
+    :key   i}
+   (let [thumb (:thumbnail c)]
+     [:img {:src   (str (:path thumb) "." (:extension thumb))
+            :style {
+                    :width  "220px"
+                    :height "340px"}
+            :alt   (:title c)}])
+   [:a {:key    i
+        :href   (str "https://read.marvel.com/#/book/" (:digitalId c))
+        :target "_blank"
+        :style  button-link-style}
+    (:title c)]
+   [:button
+    {:on-click #(rf/dispatch [::gql/mutate
+                              query/mark-read
+                              {:digitalId (:digitalId c)}
+                              [:marked-read]])}
+    "Already read it"]])
 
 (defn char-search-form []
   (let [search (ra/atom "")]
@@ -97,16 +69,17 @@
                  :type     :submit}
         "GO"]])))
 
+(defn pages []
+  [:div
+   (map
+     (fn [page]
+       [:button {:key page :on-click #(rf/dispatch [:page page])} page])
+     [:page/char :page/queue])])
+
 (defn char-search []
-  (let [char @(rf/subscribe [:char])]
-    [:div
-     [choose-character]
-     [char-search-form]
-     (when char
-       [:div {:key (:name char)}
-        [:h2 (str "Char: " (:name char))]
-        [show-comix
-         (get-in char [:getComicsCharacterCollection :data])]])]))
+  [:div
+   [characters]
+   [char-search-form]])
 
 (defn queue []
   (let [unread @(rf/subscribe [:unread-comics])]

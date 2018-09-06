@@ -63,10 +63,13 @@
              last-tag (get-in tag-cache [path :tag])
              headers (if (some? last-tag)
                        {"If-None-Match" last-tag})
-             resp (http/get
-                    (marvel-url path)
-                    {:headers      headers
-                     :query-params query})
+             resp (try
+                    (http/get
+                      (marvel-url path)
+                      {:headers      headers
+                       :query-params query})
+                    (catch Exception e
+                      (println "bad request" e)))
              etag (get-in resp [:headers "ETag"])
              body (-> resp
                       (get :body)
@@ -89,12 +92,39 @@
                                                    :body body}}])
              body)))))))
 
+(defn get-feed
+  [db _ _ _]
+  (let [state @db
+        already-read (set (:read state))
+        characters (:subscribed-characters state)]
+    ; TODO can i just use my own generated GQL resolvers? why not? is that weird?
+    (loop [got [] offset 0]
+      (let [resp (marvel-req db
+                             "v1/public/comics"
+                             {:characters      (vec characters)
+                              :offset          offset
+                              :orderBy         "onsaleDate"
+                              :hasDigitalIssue true})
+            total (concat got
+                          (-> resp
+                              (get-in [:data :results])
+                              (#(filter
+                                  (fn [comic]
+                                    (not (contains? already-read (:digitalId comic))))
+                                  %))))]
+        (println "hrm" (keys resp) resp)
+        (if (> (count total) 0)
+          {:results total :offset offset}
+          (recur total (+ offset 20)))))))
+
 
 (defrecord MarvelProvider [marvel db-provider]
   com.stuartsierra.component/Lifecycle
   (start [this]
     (assoc this :marvel
-                (partial marvel-req (:db db-provider))))
+                (partial marvel-req (:db db-provider))
+                :get-feed
+                (partial get-feed (:db db-provider))))
   (stop [this]
     this))
 
