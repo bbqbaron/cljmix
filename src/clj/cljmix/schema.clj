@@ -79,7 +79,10 @@
                :offset {:type 'Int}}}
     :subscribedCharacters
     {:type    '(non-null (list (non-null Int)))
-     :resolve :queries/subscribedCharacters}}
+     :resolve :queries/subscribedCharacters}
+    :getTime
+    {:type    'Int
+     :resolve :queries/getTime}}
    :mutations
    {:markRead
     {:args    {:digitalId {:type '(non-null Int)}}
@@ -88,7 +91,11 @@
     :subscribeCharacter
     {:args    {:charId {:type '(non-null Int)}}
      :resolve :mutation/subscribeCharacter
-     :type    '(non-null (list (non-null Int)))}}})
+     :type    '(non-null (list (non-null Int)))}
+    :setTime
+    {:args    {:time {:type 'Float}}
+     :resolve :mutation/setTime
+     :type    'Float}}})
 
 (defn get-history [db]
   (fn [_ _ _]
@@ -101,6 +108,16 @@
 (defn get-subscribed-characters
   [db _ _ _]
   (:subscribed-characters @db))
+
+(defn get-time
+  [db _ _ _]
+  (:time @db))
+
+(defn set-time
+  [db _ args _]
+  (let [time (:time args)]
+    (prevayler/handle! db [:set-time time])
+    time))
 
 (defn raw-schema
   [db-provider {marvel-req :marvel get-feed :get-feed}]
@@ -122,7 +139,9 @@
              :mutation/subscribeCharacter    (partial subscribe-character (:db db-provider))
              :queries/getFeed                get-feed
              :queries/subscribedCharacters   (partial get-subscribed-characters (:db db-provider))
-             :queries/getCharacterIndividual (fn [_ _ _] nil)})))))
+             :queries/getCharacterIndividual (fn [_ _ _] nil)
+             :queries/getTime                (partial get-time (:db db-provider))
+             :mutation/setTime               (partial set-time (:db db-provider))})))))
 
 (defrecord SchemaProvider [db-provider marvel-provider schema]
 

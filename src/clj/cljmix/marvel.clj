@@ -4,7 +4,9 @@
             [cheshire.core :as json]
             [clj-http.client :as http]
             [prevayler :as prv])
-  (:import (java.security MessageDigest)))
+  (:import (java.security MessageDigest)
+           (java.text SimpleDateFormat)
+           (java.util Date)))
 
 (defn- get-keys
   []
@@ -96,26 +98,29 @@
   [db _ _ _]
   (let [state @db
         already-read (set (:read state))
-        characters (:subscribed-characters state)]
-    ; TODO can i just use my own generated GQL resolvers? why not? is that weird?
-    (loop [got [] offset 0]
-      (let [resp (marvel-req db
-                             "v1/public/comics"
-                             {:characters      (vec characters)
-                              :offset          offset
-                              :orderBy         "onsaleDate"
-                              :hasDigitalIssue true})
-            total (concat got
-                          (-> resp
-                              (get-in [:data :results])
-                              (#(filter
-                                  (fn [comic]
-                                    (not (contains? already-read (:digitalId comic))))
-                                  %))))]
-        (println "hrm" (keys resp) resp)
-        (if (> (count total) 0)
-          {:results total :offset offset}
-          (recur total (+ offset 20)))))))
+        characters (:subscribed-characters state)
+        time-point (:time state)
+        ; TODO can i just use my own generated GQL resolvers? why not? is that weird?
+        resp (marvel-req db
+                         "v1/public/comics"
+                         {:characters      (vec characters)
+                          :orderBy         "onsaleDate"
+                          :hasDigitalIssue true
+                          :dateRange       (when (some? time-point)
+                                             [
+                                              (.format
+                                                (SimpleDateFormat. "YYYY-MM-dd")
+                                                time-point)
+                                              (.format
+                                                (SimpleDateFormat. "YYYY-MM-dd")
+                                                (Date.))])})
+        total (-> resp
+                  (get-in [:data :results])
+                  (#(filter
+                      (fn [comic]
+                        (not (contains? already-read (:digitalId comic))))
+                      %)))]
+    {:results total :offset 0}))
 
 
 (defrecord MarvelProvider [marvel db-provider]
