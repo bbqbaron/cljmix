@@ -36,6 +36,7 @@
                                            [:digitalId
                                             :description
                                             :title
+                                            [:dates [:type :date]]
                                             [:series [:name :resourceURI]]
                                             [:thumbnail [:extension :path]]]]]]]]]}))
 
@@ -68,6 +69,7 @@
                                                  [:digitalId
                                                   :description
                                                   :title
+                                                  [:dates [:type :date]]
                                                   [:series [:name :resourceURI]]
                                                   [:thumbnail [:extension :path]]]]]]]]]]]]]]]
                     :venia/variables [{:variable/name "charName"

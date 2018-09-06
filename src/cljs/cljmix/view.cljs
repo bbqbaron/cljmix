@@ -5,7 +5,8 @@
             [cljmix.query :as query]
             cljmix.db
             cljmix.fx
-            cljmix.sub))
+            cljmix.sub
+            [reagent.core :as ra]))
 
 (def button-link-style
   {:font             "bold 11px Arial"
@@ -83,4 +84,35 @@
                     show-comic
                     comics))]
      [comics-footer comix-data]]))
+
+(defn char-search-form []
+  (let [search (ra/atom "")]
+    (fn []
+      [:form
+       {:on-submit #(.preventDefault %)}
+       [:input {:type       "text" :placeholder "Find a character!" :value @search
+                :auto-focus true
+                :on-change  #(reset! search (-> % .-target .-value))}]
+       [:button {:on-click #(query/search-char @search)
+                 :type     :submit}
+        "GO"]])))
+
+(defn char-search []
+  (let [char @(rf/subscribe [:char])]
+    [:div
+     [choose-character]
+     [char-search-form]
+     (when char
+       [:div {:key (:name char)}
+        [:h2 (str "Char: " (:name char))]
+        [show-comix
+         (get-in char [:getComicsCharacterCollection :data])]])]))
+
+(defn queue []
+  (let [unread @(rf/subscribe [:unread-comics])]
+    [:div
+     [char-search-form]
+     [grid (doall (map-indexed
+                    show-comic
+                    unread))]]))
 

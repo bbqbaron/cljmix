@@ -5,7 +5,7 @@
 (rf/reg-event-db
   :initialize
   (fn [db _]
-    db))
+    (assoc db :page :queue)))
 
 (rf/reg-event-db
   :char-result
@@ -40,10 +40,14 @@
        (uniq-by :digitalId)))
 
 (rf/reg-event-db
+  :page
+  (fn [db [_ page]]
+    (assoc db :page page)))
+
+(rf/reg-event-db
   :comics-result
   (fn [db [_ char-id payload]]
     (update-in db
-               ; TODO not this
                [:characters char-id :getComicsCharacterCollection :data :results]
                #(add-comics
                   %

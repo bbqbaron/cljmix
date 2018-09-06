@@ -21,25 +21,10 @@
 
 (defn ui
   []
-  (let [search (ra/atom "")]
-    (fn []
-      (let [char @(rf/subscribe [:char])]
-        [:div
-         [vw/choose-character]
-         [:form
-          {:on-submit #(.preventDefault %)}
-          [:input {:type       "text" :placeholder "Find a character!" :value @search
-                   :auto-focus true
-                   :on-change  #(reset! search (-> % .-target .-value))}]
-          [:button {:on-click #(query/search-char @search)
-                    :type     :submit}
-           "GO"]]
-         (when char
-           [:div {:key (:name char)}
-            [:h2 (str "Char: " (:name char))]
-            [vw/show-comix
-             (get-in char [:getComicsCharacterCollection :data])]])]))))
-
+  (let [page @(rf/subscribe [:page])]
+    (case page
+      :char [vw/char-search]
+      :queue [vw/queue])))
 
 (defn ^:export run
   []
