@@ -8,52 +8,47 @@
 
 (defn- edge-resolver
   ; TODO don't blow up on 404, for resilience
-  ([marvel-req entity-root sub-entity]
-   (fn [_ args parent]
-     (let [path
-           (filter some? (list "" "v1" "public" entity-root (:id parent) sub-entity))]
-       (marvel-req
-         (clojure.string/join
-           "/"
-           path)
-         args))))
-  ([marvel-req entity-root sub-entity path-arg-name]
-   (fn [_ args _]
-     (let [path
-           (filter some? (list "" "v1" "public" entity-root
-                               (get args path-arg-name)
-                               sub-entity))]
-       (marvel-req
-         (clojure.string/join
-           "/"
-           path)
-         (dissoc args path-arg-name))))))
+  [marvel-req [entity-root [path-type path-key] sub-entity]]
+  (fn [_ args parent]
+    (let [path-arg-provider (case path-type
+                              :root parent
+                              :args args
+                              nil)
+          arg-segment
+          (when (some? path-arg-provider)
+            (get path-arg-provider
+                 path-key))
+          path
+          (filter some? (list "" "v1" "public"
+                              entity-root
+                              arg-segment
+                              sub-entity))
+          req-body (case path-type
+                     :args (dissoc args path-key)
+                     args)]
+      (marvel-req
+        (clojure.string/join
+          "/"
+          path)
+        req-body))))
 
 (defn- resolver-map
   [marvel-req]
-  ; TODO these are all just `edge-resolver` with no parent id!
   {:queries/getComicsCollection
-                  (fn [_ args _]
-                    (marvel-req "v1/public/comics"
-                                args))
+                  (edge-resolver marvel-req ["comics"])
    :queries/getCharacterCollection
-                  (fn [_ args _]
-                    (marvel-req "v1/public/characters"
-                                args))
+                  (edge-resolver marvel-req ["characters"])
    :queries/getCreatorCollection
-                  (fn [_ _ _]
-                    (marvel-req "v1/public/creators"))
+                  (edge-resolver marvel-req ["creators"])
    :queries/getSeriesCollection
-                  (fn [_ _ _]
-                    (marvel-req "v1/public/series"))
+                  (edge-resolver marvel-req ["series"])
    :queries/getEventsCollection
-                  (fn [_ _ _]
-                    (marvel-req "v1/public/events"))
+                  (edge-resolver marvel-req ["events"])
    :queries/getStoryCollection
-                  (fn [_ _ _]
-                    (marvel-req "v1/public/stories"))
+                  (edge-resolver marvel-req ["stories"])
+   :queries/getCharacterIndividual
+                  (edge-resolver marvel-req ["characters" [:args :characterId]])
    :edge-resolver (partial edge-resolver marvel-req)})
-
 
 (defn get-schema-edn []
   (-> (io/resource "gen-schema.edn")

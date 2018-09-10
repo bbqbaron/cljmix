@@ -80,7 +80,6 @@
 
 (defn parse-args [{:keys [parameters]}]
   (->> parameters
-       (filter (fn [arg] (not= "path" (:paramType arg))))
        (map parse-arg)
        (into {})))
 
@@ -90,25 +89,6 @@
      {:type (keyword responseClass)
       :args (parse-args node)}]))
 
-(defn unpath [path]
-  (->> path
-       (#(clojure.string/split % #"/"))
-       (drop 3)
-       (partition-by (fn [s] (clojure.string/starts-with? s "{")))
-       ((fn [l]
-          (flatten (list (first l)
-                         (if (> (count l) 2)
-                           (nth l 2)
-                           nil)))))))
-
-
-(defn field-resolver-args
-  "Derive the name for the resolver of a given field."
-  [{:keys [op path]}]
-  (let [[root after-path] (unpath path)]
-    [:edge-resolver
-     root
-     after-path]))
 
 (def parent-to-relevant-type
   "Map type names by their ending strings
@@ -143,9 +123,18 @@
       (let [parent-type (get-in schema [:objects parent-type-name])]
         (type-for-type-wrapper schema (get-child-path (get parent-type :fields)))))))
 
+(defn field-resolver-args
+  [{:keys [path]}]
+  [:edge-resolver
+   (-> path
+       (clojure.string/split #"/")
+       ((partial drop 3))
+       vec
+       (assoc
+         1
+         [:root :id]))])
+
 (defn add-node-fields
-  " TODO: implicit path vars like {characterId} are not acknowledged as params
-  in :op. Need to infer from path construction. Look for {} :/ ?"
   [schema parent-type node]
   (let [[field-name field-val] (field-from-op (:op node))
         return-type (keyword (get-in node [:op :responseClass]))
@@ -169,7 +158,7 @@
             parent
             subfields))))
 
-(defn resolver-name
+(defn- resolver-name
   "Derive the name for the resolver of a given query."
   [field-name]
   (keyword "queries" (name field-name)))
