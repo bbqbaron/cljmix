@@ -23,3 +23,7 @@
 (rf/reg-sub :unread-comics
             (fn [db _]
               (:feed db)))
+
+(rf/reg-sub :subs
+  (fn [db _]
+    (:subscribed-characters db)))

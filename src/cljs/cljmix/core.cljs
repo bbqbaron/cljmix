@@ -14,6 +14,10 @@
 (rf/dispatch [::gql/init {:ws-url nil}])
 
 (rf/dispatch (query/get-feed 0))
+(rf/dispatch [::gql/query
+              query/get-subs
+              {}
+              [:subs-result]])
 
 (defn ui
   []

@@ -10,6 +10,11 @@
                     :venia/operation {:operation/type :mutation
                                       :operation/name "MarkRead"}}))
 
+(def get-subs
+  (v/graphql-query {:venia/queries [[:subscribedCharacters]]
+                    :venia/operation {:operation/type :query
+                                      :operation/name "GetSubs"}}))
+
 (def subscribe-character-mutation
   (v/graphql-query {:venia/queries   [[:subscribeCharacter {:charId :$charId}]]
                     :venia/variables [{:variable/name "charId"

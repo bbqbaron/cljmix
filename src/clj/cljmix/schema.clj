@@ -6,16 +6,28 @@
             [com.stuartsierra.component :as component]
             [prevayler :as prv]))
 
-(defn- edge-resolver [marvel-req entity-root sub-entity]
-  (fn [_ args parent]
-    (let [path
-          ; TODO don't blow up on 404, for resilience
-          (filter some? (list "" "v1" "public" entity-root (:id parent) sub-entity))]
-      (marvel-req
-        (clojure.string/join
-          "/"
-          path)
-        args))))
+(defn- edge-resolver
+  ; TODO don't blow up on 404, for resilience
+  ([marvel-req entity-root sub-entity]
+   (fn [_ args parent]
+     (let [path
+           (filter some? (list "" "v1" "public" entity-root (:id parent) sub-entity))]
+       (marvel-req
+         (clojure.string/join
+           "/"
+           path)
+         args))))
+  ([marvel-req entity-root sub-entity path-arg-name]
+   (fn [_ args _]
+     (let [path
+           (filter some? (list "" "v1" "public" entity-root
+                               (get args path-arg-name)
+                               sub-entity))]
+       (marvel-req
+         (clojure.string/join
+           "/"
+           path)
+         (dissoc args path-arg-name))))))
 
 (defn- resolver-map
   [marvel-req]
@@ -139,7 +151,10 @@
              :mutation/subscribeCharacter    (partial subscribe-character (:db db-provider))
              :queries/getFeed                get-feed
              :queries/subscribedCharacters   (partial get-subscribed-characters (:db db-provider))
-             :queries/getCharacterIndividual (fn [_ _ _] nil)
+             :queries/getCharacterIndividual (fn [_ args _]
+                                               (marvel-req (str
+                                                             "v1/public/character"
+                                                             (:id args))))
              :queries/getTime                (partial get-time (:db db-provider))
              :mutation/setTime               (partial set-time (:db db-provider))})))))
 

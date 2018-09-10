@@ -104,7 +104,7 @@
 
 (defn field-resolver-args
   "Derive the name for the resolver of a given field."
-  [path]
+  [{:keys [op path]}]
   (let [[root after-path] (unpath path)]
     [:edge-resolver
      root
@@ -159,7 +159,7 @@
               (assoc
                 field-val
                 :resolve
-                (field-resolver-args (:path node)))))
+                (field-resolver-args node))))
           (reduce
             (fn [acc subnode]
               (add-node-fields

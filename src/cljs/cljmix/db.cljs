@@ -6,7 +6,7 @@
   :initialize
   (fn [db _]
     (-> db
-        (assoc :page :page/queue)
+        (assoc :page :page/char)
         (assoc :feed []))))
 
 (rf/reg-event-db
@@ -36,3 +36,7 @@
             concat
             (get-in payload [:data :feed :results]))))
 
+(rf/reg-event-db
+  :subs-result
+  (fn [db [_ payload]]
+    (assoc db :subscribed-characters (get-in payload [:data :subscribedCharacters]))))

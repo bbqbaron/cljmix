@@ -25,7 +25,22 @@
             :grid-template-rows    "1fr 1fr 1fr 1fr"}}
    els])
 
-(defn characters []
+(defn subscriptions []
+  (let [subscribed @(rf/subscribe [:subs])]
+    [:div
+     [:p "Subscribed to: "]
+     (map
+       (fn [sub]
+         [:div
+          [:button {:on-click #(rf/dispatch ::gql/mutate
+                                            query/unsubscribe
+                                            {:id sub}
+                                            [:unsubscribed])}
+           sub]
+          [:p {:key sub} sub]])
+       subscribed)]))
+
+(defn char-search-results []
   (let [chars @(rf/subscribe [:char-search-result])]
     [:div
      (map
@@ -78,7 +93,8 @@
 
 (defn char-search []
   [:div
-   [characters]
+   [subscriptions]
+   [char-search-results]
    [char-search-form]])
 
 (defn queue []
