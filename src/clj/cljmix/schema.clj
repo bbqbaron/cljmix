@@ -6,7 +6,7 @@
             [com.stuartsierra.component :as component]
             [prevayler :as prv]))
 
-(defn- edge-resolver
+(defn edge-resolver
   ; TODO don't blow up on 404, for resilience
   [marvel-req [entity-root [path-type path-key] sub-entity]]
   (fn [_ args parent]
@@ -32,7 +32,7 @@
           path)
         req-body))))
 
-(defn- resolver-map
+(defn resolver-map
   [marvel-req]
   {:queries/getComicsCollection
                   (edge-resolver marvel-req ["comics"])
@@ -141,17 +141,13 @@
           (merge
             (resolver-map marvel-req)
             placeholders
-            {:queries/readHistory            (get-history db-provider)
-             :mutation/markRead              (update-history db-provider)
-             :mutation/subscribeCharacter    (partial subscribe-character (:db db-provider))
-             :queries/getFeed                get-feed
-             :queries/subscribedCharacters   (partial get-subscribed-characters (:db db-provider))
-             :queries/getCharacterIndividual (fn [_ args _]
-                                               (marvel-req (str
-                                                             "v1/public/character"
-                                                             (:id args))))
-             :queries/getTime                (partial get-time (:db db-provider))
-             :mutation/setTime               (partial set-time (:db db-provider))})))))
+            {:queries/readHistory          (get-history db-provider)
+             :mutation/markRead            (update-history db-provider)
+             :mutation/subscribeCharacter  (partial subscribe-character (:db db-provider))
+             :queries/getFeed              get-feed
+             :queries/subscribedCharacters (partial get-subscribed-characters (:db db-provider))
+             :queries/getTime              (partial get-time (:db db-provider))
+             :mutation/setTime             (partial set-time (:db db-provider))})))))
 
 (defrecord SchemaProvider [db-provider marvel-provider schema]
 
