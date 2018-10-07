@@ -40,3 +40,9 @@
   :subs-result
   (fn [db [_ payload]]
     (assoc db :subscribed-characters (get-in payload [:data :subscribedCharacters]))))
+
+(rf/reg-event-db
+  :unsubscribed
+  (fn [db [_ payload]]
+    (assoc db :subscribed-characters (get-in payload [:data :unsubscribeCharacter]))))
+

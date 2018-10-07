@@ -3,10 +3,10 @@
 
 (rf/reg-event-fx
   :subscribed
-  (fn [{db :db} [_ char-id _]]
-    (let [new-db (update db :subscribed-characters conj char-id)]
-      {:db       new-db
-       :dispatch (cljmix.query/get-feed
-                   0)})))
-
+  (fn [world [_ payload]]
+    {:dispatch (cljmix.query/get-feed
+                 0)
+     :db       (assoc (:db world)
+                 :subscribed-characters
+                 (get-in payload [:data :subscribeCharacter]))}))
 

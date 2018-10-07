@@ -46,7 +46,10 @@
              hashed)]
     url))
 
-(defn- with-server-cache [db url args otherwise]
+(defn- with-server-cache
+  "Uncritically caches anything we got back, for totally offline work."
+  ; TODO add a TTL
+  [db url args otherwise]
   (let [hash-path [:server-cache (hash url) (hash args)]
         found (get-in @db hash-path)]
     (when (some? found)

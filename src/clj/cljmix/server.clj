@@ -9,6 +9,7 @@
       (lp/service-map {:graphiql true
                        :ide-path "/graphiql"})
       (assoc ::http/resource-path "/public")
+      (assoc ::http/port 8292)
       http/create-server
       http/start))
 

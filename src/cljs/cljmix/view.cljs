@@ -31,13 +31,13 @@
      [:p "Subscribed to: "]
      (map
        (fn [sub]
-         [:div
-          [:button {:on-click #(rf/dispatch ::gql/mutate
-                                            query/unsubscribe
-                                            {:id sub}
-                                            [:unsubscribed])}
-           sub]
-          [:p {:key sub} sub]])
+         (let [character (get-in sub [:data :results 0])]
+           [:div {:key (:id character)}
+            [:p (:name character)]
+            [:button {:on-click #(rf/dispatch
+                                   (query/unsubscribe-character
+                                     (:id character)))}
+             "Unsubscribe"]]))
        subscribed)]))
 
 (defn char-search-results []
@@ -80,7 +80,7 @@
        [:input {:type       "text" :placeholder "Find a character!" :value @search
                 :auto-focus true
                 :on-change  #(reset! search (-> % .-target .-value))}]
-       [:button {:on-click #(query/search-char @search)
+       [:button {:on-click #(rf/dispatch (query/search-char @search))
                  :type     :submit}
         "GO"]])))
 

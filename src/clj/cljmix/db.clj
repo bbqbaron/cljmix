@@ -18,6 +18,9 @@
             (assoc-in state (cons :server-cache path) body))
           :subscribe-character
           (update state :subscribed-characters #(conj (or % #{}) event-val))
+          :unsubscribe-character
+          (update state :subscribed-characters
+                  (partial filter #(not= % event-val)))
           :set-time
           (assoc state :time event-val)
           state)]

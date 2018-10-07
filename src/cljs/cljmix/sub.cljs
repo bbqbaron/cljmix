@@ -16,8 +16,6 @@
   (fn [db _]
     (get-in db [:characters (:char-id db)])))
 
-(rf/reg-sub :char-ids (fn [db _] (keys (:char-search-result db))))
-
 (rf/reg-sub :page (fn [db _] (:page db)))
 
 (rf/reg-sub :unread-comics

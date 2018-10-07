@@ -68,9 +68,22 @@
     (filter (comp some? :resolve))))
 
 (defn subscribe-character
-  [db _ args _]
-  (let [[new-db] (prevayler/handle! db [:subscribe-character (:charId args)])]
-    (:subscribed-characters new-db)))
+  [db marvel-req _ args _]
+  (let [[new-db] (prevayler/handle! db [:subscribe-character (:charId args)])
+        subscribed-ids (:subscribed-characters new-db)
+        chars (map
+                #(marvel-req (str "v1/public/characters/" %))
+                subscribed-ids)]
+    chars))
+
+(defn unsubscribe-character
+  [db marvel-req _ args _]
+  (let [[new-db] (prevayler/handle! db [:unsubscribe-character (:charId args)])
+        subscribed-ids (:subscribed-characters new-db)
+        chars (map
+                #(marvel-req (str "v1/public/characters/" %))
+                subscribed-ids)]
+    chars))
 
 (def non-marvel-schema
   {:queries
@@ -85,7 +98,7 @@
               {:limit  {:type 'Int}
                :offset {:type 'Int}}}
     :subscribedCharacters
-    {:type    '(non-null (list (non-null Int)))
+    {:type    '(non-null (list (non-null CharacterDataWrapper)))
      :resolve :queries/subscribedCharacters}
     :getTime
     {:type    'Int
@@ -98,7 +111,11 @@
     :subscribeCharacter
     {:args    {:charId {:type '(non-null Int)}}
      :resolve :mutation/subscribeCharacter
-     :type    '(non-null (list (non-null Int)))}
+     :type    '(non-null (list (non-null CharacterDataWrapper)))}
+    :unsubscribeCharacter
+    {:args    {:charId {:type '(non-null Int)}}
+     :resolve :mutation/unsubscribeCharacter
+     :type    '(non-null (list (non-null CharacterDataWrapper)))}
     :setTime
     {:args    {:time {:type 'Float}}
      :resolve :mutation/setTime
@@ -113,8 +130,13 @@
     (:read (first (prv/handle! (:db db) [:mark-read (:digitalId args)])))))
 
 (defn get-subscribed-characters
-  [db _ _ _]
-  (:subscribed-characters @db))
+  [db-atom marvel-req _ _ _]
+  (let [db @db-atom
+        subscribed-ids (:subscribed-characters db)
+        chars (map
+                #(marvel-req (str "v1/public/characters/" %))
+                subscribed-ids)]
+    chars))
 
 (defn get-time
   [db _ _ _]
@@ -141,13 +163,16 @@
           (merge
             (resolver-map marvel-req)
             placeholders
-            {:queries/readHistory          (get-history db-provider)
-             :mutation/markRead            (update-history db-provider)
-             :mutation/subscribeCharacter  (partial subscribe-character (:db db-provider))
-             :queries/getFeed              get-feed
-             :queries/subscribedCharacters (partial get-subscribed-characters (:db db-provider))
-             :queries/getTime              (partial get-time (:db db-provider))
-             :mutation/setTime             (partial set-time (:db db-provider))})))))
+            {:queries/readHistory           (get-history db-provider)
+             :mutation/markRead             (update-history db-provider)
+             :mutation/subscribeCharacter   (partial subscribe-character (:db db-provider) marvel-req)
+             :mutation/unsubscribeCharacter (partial unsubscribe-character (:db db-provider) marvel-req)
+             :queries/getFeed               get-feed
+             :queries/subscribedCharacters  (partial get-subscribed-characters
+                                                     (:db db-provider)
+                                                     marvel-req)
+             :queries/getTime               (partial get-time (:db db-provider))
+             :mutation/setTime              (partial set-time (:db db-provider))})))))
 
 (defrecord SchemaProvider [db-provider marvel-provider schema]
 

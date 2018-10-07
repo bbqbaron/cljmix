@@ -1,7 +1,18 @@
 (ns cljmix.query
   (:require [venia.core :as v]
-            [re-frame.core :as rf]
             [re-graph.core :as gql]))
+
+(def character-fragment [[:data
+                          [
+                           :total
+                           :count
+                           :limit
+                           :offset
+                           [:results
+                            [:name
+                             :id
+                             [:thumbnail
+                              [:extension :path]]]]]]])
 
 (def mark-read
   (v/graphql-query {:venia/queries   [[:markRead {:digitalId :$digitalId}]]
@@ -11,12 +22,22 @@
                                       :operation/name "MarkRead"}}))
 
 (def get-subs
-  (v/graphql-query {:venia/queries [[:subscribedCharacters]]
+  (v/graphql-query {:venia/queries   [[:subscribedCharacters
+                                       character-fragment]]
                     :venia/operation {:operation/type :query
                                       :operation/name "GetSubs"}}))
 
+(def unsub-mutation
+  (v/graphql-query {:venia/queries   [[:unsubscribeCharacter {:charId :$charId}
+                                       character-fragment]]
+                    :venia/variables [{:variable/name "charId"
+                                       :variable/type :Int!}]
+                    :venia/operation {:operation/type :mutation
+                                      :operation/name "UnsubscribeFromCharacter"}}))
+
 (def subscribe-character-mutation
-  (v/graphql-query {:venia/queries   [[:subscribeCharacter {:charId :$charId}]]
+  (v/graphql-query {:venia/queries   [[:subscribeCharacter {:charId :$charId}
+                                       character-fragment]]
                     :venia/variables [{:variable/name "charId"
                                        :variable/type :Int!}]
                     :venia/operation {:operation/type :mutation
@@ -41,34 +62,43 @@
                                           [:series [:name :resourceURI]]
                                           [:thumbnail [:extension :path]]]]]]]}))
 
+
+
 (def char-query
   (v/graphql-query {:venia/operation {:operation/name "GetCharacter"
+                                      :operation/type :query}
+                    :venia/queries   [[:getCharacterIndividual
+                                       {:charId :$charId}
+                                       character-fragment]]
+                    :venia/variables [{:variable/name "charId" :variable/type :String!}]}))
+
+(def char-search-query
+  (v/graphql-query {:venia/operation {:operation/name "SearchCharacter"
                                       :operation/type :query}
                     :venia/queries   [[:getCharacterCollection
                                        {:nameStartsWith :$charName
                                         :offset         :$offset}
-                                       [[:data
-                                         [
-                                          :total
-                                          :count
-                                          :limit
-                                          :offset
-                                          [:results
-                                           [:name
-                                            :id
-                                            [:thumbnail
-                                             [:extension :path]]]]]]]]]
+                                       character-fragment]]
                     :venia/variables [{:variable/name "charName"
                                        :variable/type :String!}
                                       {:variable/name "offset"
                                        :variable/type :Int}]}))
 
+(defn get-chars
+  [ids]
+  (map
+    #([::gql/query
+       char-query
+       {:charId %}
+       [:char-result %]])
+    ids))
+
 (defn search-char
   [char-name]
-  (rf/dispatch [::gql/query
-                char-query
-                {:charName char-name}
-                [:char-search-result]]))
+  [::gql/query
+   char-search-query
+   {:charName char-name}
+   [:char-search-result]])
 
 (defn get-feed
   [offset]
@@ -81,5 +111,10 @@
   [::gql/mutate
    subscribe-character-mutation
    {:charId char-id}
-   [:subscribed char-id]])
+   [:subscribed]])
 
+(defn unsubscribe-character [char-id]
+  [::gql/mutate
+   unsub-mutation
+   {:charId char-id}
+   [:unsubscribed]])

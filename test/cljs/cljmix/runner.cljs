@@ -4,8 +4,6 @@
 
 (enable-console-print!)
 
-(js/console.log "WTF!")
-
 (defn start
   []
   (t/run-tests
