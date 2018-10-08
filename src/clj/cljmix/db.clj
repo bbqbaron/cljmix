@@ -26,15 +26,25 @@
           state)]
     [new-state true]))
 
+(defonce db (ref nil))
+
+(defn reset-db []
+  (dosync
+    (ref-set db (prevayler! reducer))))
+
 (defrecord Db []
   component/Lifecycle
   (start [this]
-    (assoc this :db (prevayler! reducer)))
+    (dosync
+      (let [prev (or
+                   @db
+                   (do (println "new db")
+                       (let [new-db (prevayler! db)]
+                         (ref-set db new-db)
+                         new-db)))]
+        (assoc this :db prev))))
 
   (stop [this]
-    (let [db (:db this)]
-      (when (some? db)
-        (.close db)))
     this))
 
 (defn new-db []

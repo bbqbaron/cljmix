@@ -70,7 +70,7 @@
                               query/mark-read
                               {:digitalId (:digitalId c)}
                               [:marked-read (:digitalId c)]])}
-    "Already read it"]])
+    "Dismiss"]])
 
 (defn char-search-form []
   (let [search (ra/atom "")]
