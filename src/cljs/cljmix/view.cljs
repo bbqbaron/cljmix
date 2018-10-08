@@ -29,16 +29,16 @@
   (let [subscribed @(rf/subscribe [:subs])]
     [:div
      [:p "Subscribed to: "]
-     (map
-       (fn [sub]
-         (let [character (get-in sub [:data :results 0])]
-           [:div {:key (:id character)}
-            [:p (:name character)]
-            [:button {:on-click #(rf/dispatch
-                                   (query/unsubscribe-character
-                                     (:id character)))}
-             "Unsubscribe"]]))
-       subscribed)]))
+     [grid (map
+             (fn [sub]
+               (let [character (get-in sub [:data :results 0])]
+                 [:div {:key (:id character)}
+                  [:p (:name character)]
+                  [:button {:on-click #(rf/dispatch
+                                         (query/unsubscribe-character
+                                           (:id character)))}
+                   "Unsubscribe"]]))
+             subscribed)]]))
 
 (defn char-search-results []
   (let [chars @(rf/subscribe [:char-search-result])]
