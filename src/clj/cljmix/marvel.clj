@@ -97,35 +97,45 @@
                                                    :body body}}])
              body)))))))
 
+(def page-size 100)
+(def feed-tries 10)
+
 (defn get-feed
   ([db]
    (get-feed db nil nil nil))
   ([db _ _ _]
-   (let [state @db
-         already-read (set (:read state))
-         characters (:subscribed-characters state)
-         time-point (:time state)
-         ; TODO can i just use my own generated GQL resolvers? why not? is that weird?
-         resp (marvel-req db
-                          "v1/public/comics"
-                          {:characters      (vec characters)
-                           :orderBy         "onsaleDate"
-                           :hasDigitalIssue true
-                           :dateRange       (when (some? time-point)
-                                              [
-                                               (.format
-                                                 (SimpleDateFormat. "yyyy-MM-dd")
-                                                 time-point)
-                                               (.format
-                                                 (SimpleDateFormat. "yyyy-MM-dd")
-                                                 #inst "2019-12-31")])})
-         total (-> resp
-                   (get-in [:data :results])
-                   (#(filter
-                       (fn [comic]
-                         (not (contains? already-read (:digitalId comic))))
-                       %)))]
-     {:results total :offset 0})))
+   (loop [page 0]
+     (if (> page feed-tries)
+       {:results [] :offset (* page page-size)}
+       (let [state @db
+             already-read (set (:read state))
+             characters (:subscribed-characters state)
+             time-point (:time state)
+             ; TODO can i just use my own generated GQL resolvers? why not? is that weird?
+             resp (marvel-req db
+                              "v1/public/comics"
+                              {:characters      (vec characters)
+                               :orderBy         "onsaleDate"
+                               :hasDigitalIssue true
+                               :offset          (* page page-size)
+                               :limit           page-size
+                               :dateRange       (when (some? time-point)
+                                                  [
+                                                   (.format
+                                                     (SimpleDateFormat. "yyyy-MM-dd")
+                                                     time-point)
+                                                   (.format
+                                                     (SimpleDateFormat. "yyyy-MM-dd")
+                                                     #inst "2019-12-31")])})
+             total (-> resp
+                       (get-in [:data :results])
+                       (#(filter
+                           (fn [comic]
+                             (not (contains? already-read (:digitalId comic))))
+                           %)))]
+         (if (not (empty? total))
+           {:results total :offset (* page page-size)}
+           (recur (inc page))))))))
 
 (defrecord MarvelProvider [marvel db-provider]
   com.stuartsierra.component/Lifecycle
