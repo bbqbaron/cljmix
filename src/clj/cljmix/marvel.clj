@@ -98,33 +98,34 @@
              body)))))))
 
 (defn get-feed
-  [db _ _ _]
-  (let [state @db
-        already-read (set (:read state))
-        characters (:subscribed-characters state)
-        time-point (:time state)
-        ; TODO can i just use my own generated GQL resolvers? why not? is that weird?
-        resp (marvel-req db
-                         "v1/public/comics"
-                         {:characters      (vec characters)
-                          :orderBy         "onsaleDate"
-                          :hasDigitalIssue true
-                          :dateRange       (when (some? time-point)
-                                             [
-                                              (.format
-                                                (SimpleDateFormat. "YYYY-MM-dd")
-                                                time-point)
-                                              (.format
-                                                (SimpleDateFormat. "YYYY-MM-dd")
-                                                (Date.))])})
-        total (-> resp
-                  (get-in [:data :results])
-                  (#(filter
-                      (fn [comic]
-                        (not (contains? already-read (:digitalId comic))))
-                      %)))]
-    {:results total :offset 0}))
-
+  ([db]
+   (get-feed db nil nil nil))
+  ([db _ _ _]
+   (let [state @db
+         already-read (set (:read state))
+         characters (:subscribed-characters state)
+         time-point (:time state)
+         ; TODO can i just use my own generated GQL resolvers? why not? is that weird?
+         resp (marvel-req db
+                          "v1/public/comics"
+                          {:characters      (vec characters)
+                           :orderBy         "onsaleDate"
+                           :hasDigitalIssue true
+                           :dateRange       (when (some? time-point)
+                                              [
+                                               (.format
+                                                 (SimpleDateFormat. "yyyy-MM-dd")
+                                                 time-point)
+                                               (.format
+                                                 (SimpleDateFormat. "yyyy-MM-dd")
+                                                 #inst "2019-12-31")])})
+         total (-> resp
+                   (get-in [:data :results])
+                   (#(filter
+                       (fn [comic]
+                         (not (contains? already-read (:digitalId comic))))
+                       %)))]
+     {:results total :offset 0})))
 
 (defrecord MarvelProvider [marvel db-provider]
   com.stuartsierra.component/Lifecycle

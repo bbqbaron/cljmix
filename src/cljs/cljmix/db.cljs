@@ -32,9 +32,8 @@
 (rf/reg-event-db
   :feed-result
   (fn [db [_ payload]]
-    (update db :feed
-            concat
-            (get-in payload [:data :feed :results]))))
+    (assoc db :feed
+              (get-in payload [:data :feed :results]))))
 
 (rf/reg-event-db
   :subs-result
