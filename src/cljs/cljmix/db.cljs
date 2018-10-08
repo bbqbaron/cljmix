@@ -6,7 +6,7 @@
   :initialize
   (fn [db _]
     (-> db
-        (assoc :page :page/char)
+        (assoc :page :page/queue)
         (assoc :feed []))))
 
 (rf/reg-event-db
@@ -40,4 +40,8 @@
   (fn [db [_ payload]]
     (assoc db :subscribed-characters (get-in payload [:data :subscribedCharacters]))))
 
-
+(rf/reg-event-db
+  :marked-read
+  (fn [db [_ id]]
+    (update db :feed
+            (partial filter #(not= (:digitalId %) id)))))

@@ -25,7 +25,7 @@
     [:div
      [vw/pages]
      (case page
-       :page/char [vw/char-search]
+       :page/subs [vw/subs]
        :page/queue [vw/queue])]))
 
 (defn ^:export run

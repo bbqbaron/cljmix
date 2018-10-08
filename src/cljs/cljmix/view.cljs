@@ -25,7 +25,7 @@
             :grid-template-rows    "1fr 1fr 1fr 1fr"}}
    els])
 
-(defn subscriptions []
+(defn show-subs []
   (let [subscribed @(rf/subscribe [:subs])]
     [:div
      [:p "Subscribed to: "]
@@ -69,14 +69,16 @@
     {:on-click #(rf/dispatch [::gql/mutate
                               query/mark-read
                               {:digitalId (:digitalId c)}
-                              [:marked-read]])}
+                              [:marked-read (:digitalId c)]])}
     "Already read it"]])
 
 (defn char-search-form []
   (let [search (ra/atom "")]
     (fn []
       [:form
-       {:on-submit #(.preventDefault %)}
+       {:on-submit (fn [e]
+                     (.preventDefault e)
+                     (rf/dispatch (query/search-char @search)))}
        [:input {:type       "text" :placeholder "Find a character!" :value @search
                 :auto-focus true
                 :on-change  #(reset! search (-> % .-target .-value))}]
@@ -89,18 +91,17 @@
    (map
      (fn [page]
        [:button {:key page :on-click #(rf/dispatch [:page page])} page])
-     [:page/char :page/queue])])
+     [:page/subs :page/queue])])
 
-(defn char-search []
+(defn subs []
   [:div
-   [subscriptions]
+   [show-subs]
    [char-search-results]
    [char-search-form]])
 
 (defn queue []
   (let [unread @(rf/subscribe [:unread-comics])]
     [:div
-     [char-search-form]
      [grid (doall (map-indexed
                     show-comic
                     unread))]]))
