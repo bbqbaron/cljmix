@@ -28,21 +28,20 @@
 
 (defonce db (ref nil))
 
-(defn reset-db []
+(defn clear-db []
   (dosync
-    (ref-set db (prevayler! reducer))))
+    (ref-set db nil)))
 
 (defrecord Db []
   component/Lifecycle
   (start [this]
     (dosync
-      (let [prev (or
-                   @db
-                   (do (println "new db")
-                       (let [new-db (prevayler! db)]
-                         (ref-set db new-db)
-                         new-db)))]
-        (assoc this :db prev))))
+      (when (nil? @db)
+        (do (println "new db")
+            (let [new-db (prevayler! reducer)]
+              (ref-set db new-db)
+              new-db))))
+    (assoc this :db @db))
 
   (stop [this]
     this))
