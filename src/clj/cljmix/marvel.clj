@@ -129,6 +129,14 @@
             (not (contains? already-read (:digitalId comic))))
           %))))
 
+(defn uniq-by
+  "Is this not a thing yet?"
+  [f coll]
+  (->> coll
+    (map (fn [i] [(f i) i]))
+    (into {})
+    vals))
+
 (defn get-feed
   ([db]
    (get-feed db nil nil nil))
@@ -173,7 +181,7 @@
                (let [results (async/<!! out)]
                  (close! raw)
                  (if (not (empty? results))
-                   {:results results}
+                   {:results (uniq-by :digitalId results)}
                    (recur (inc page))))))))))))
 
 (defrecord MarvelProvider [marvel db-provider]
