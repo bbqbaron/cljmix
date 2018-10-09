@@ -7,7 +7,8 @@
             [prevayler :as prv]
             [clojure.core.async :as async])
   (:import (java.security MessageDigest)
-           (java.text SimpleDateFormat)))
+           (java.text SimpleDateFormat)
+           (java.util Date)))
 
 (defn- get-keys
   []
@@ -133,9 +134,11 @@
   "Is this not a thing yet?"
   [f coll]
   (->> coll
-    (map (fn [i] [(f i) i]))
-    (into {})
-    vals))
+       (map (fn [i] [(f i) i]))
+       (into {})
+       vals))
+
+(def date-format (SimpleDateFormat. "yyyy-MM-dd"))
 
 (defn get-feed
   ([db]
@@ -144,7 +147,6 @@
    (let [state @db
          already-read (set (:read state))
          characters (sort (set (:subscribed-characters state)))]
-     (println "hm" characters (keys state))
      (if (empty? characters)
        {:results []}
        (let [character-chunks (partition 10 10 nil characters)
@@ -168,10 +170,10 @@
                    (let [time-params
                          (when (some? time-point)
                            {:dateRange [(.format
-                                          (SimpleDateFormat. "yyyy-MM-dd")
+                                          date-format
                                           time-point)
                                         (.format
-                                          (SimpleDateFormat. "yyyy-MM-dd")
+                                          date-format
                                           #inst "2019-12-31")]})]
                      (merge time-params {:characters      (vec character-chunk)
                                          :orderBy         "onsaleDate"
@@ -181,7 +183,17 @@
                (let [results (async/<!! out)]
                  (close! raw)
                  (if (not (empty? results))
-                   {:results (uniq-by :digitalId results)}
+                   {:results
+                    (->> results
+                         (uniq-by :digitalId)
+                         (sort-by
+                           (fn [c]
+                             (when-let [onsale-date
+                                        (->> c :dates
+                                             (filter #(= (:type %) "onsaleDate"))
+                                             first
+                                             :date)]
+                               (.parse date-format onsale-date)))))}
                    (recur (inc page))))))))))))
 
 (defrecord MarvelProvider [marvel db-provider]
