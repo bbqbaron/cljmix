@@ -45,3 +45,14 @@
   (fn [db [_ id]]
     (update db :feed
             (partial filter #(not= (:digitalId %) id)))))
+
+(rf/reg-event-db
+  :get-time-result
+  (fn [db [_ {:keys [data]}]]
+    (assoc db :time (:getTime data))))
+
+(rf/reg-event-db
+  :set-time-result
+  (fn [db [_ time]]
+    (assoc db :time time)))
+

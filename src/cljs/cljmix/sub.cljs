@@ -25,3 +25,6 @@
 (rf/reg-sub :subs
   (fn [db _]
     (:subscribed-characters db)))
+
+(rf/reg-sub :time
+  (fn [db _] (:time db)))

@@ -5,7 +5,25 @@
             cljmix.db
             cljmix.fx
             cljmix.sub
-            [reagent.core :as ra]))
+            [reagent.core :as r]))
+
+(defn show-time []
+  (let [state (r/atom nil)]
+    (fn []
+      (let [time @(rf/subscribe [:time])]
+        [:div
+         [:p "After: " (js/Date time)]
+         [:form {:on-submit (fn [e]
+                              (.preventDefault e)
+                              (let [val @state]
+                                (rf/dispatch (query/set-time (.valueOf (js/Date. val))))))}
+          [:input {:type "date"
+                   :on-change
+                         (fn [e]
+                           (let [val (.. e -target -value)]
+                             (reset! state val)))
+                   :value @state}]
+          [:button {:type "submit"} "Submit"]]]))))
 
 (def button-link-style
   {:font             "bold 11px Arial"
@@ -28,6 +46,7 @@
 (defn show-subs []
   (let [subscribed @(rf/subscribe [:subs])]
     [:div
+     [show-time]
      [:p "Subscribed to: "]
      [grid (map
              (fn [sub]
@@ -73,7 +92,7 @@
     "Dismiss"]])
 
 (defn char-search-form []
-  (let [search (ra/atom "")]
+  (let [search (r/atom "")]
     (fn []
       [:form
        {:on-submit (fn [e]

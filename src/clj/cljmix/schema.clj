@@ -101,7 +101,7 @@
     {:type    '(non-null (list (non-null CharacterDataWrapper)))
      :resolve :queries/subscribedCharacters}
     :getTime
-    {:type    'Int
+    {:type    'Float
      :resolve :queries/getTime}}
    :mutations
    {:markRead

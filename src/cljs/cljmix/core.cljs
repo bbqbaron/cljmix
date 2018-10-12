@@ -18,6 +18,7 @@
               query/get-subs
               {}
               [:subs-result]])
+(rf/dispatch (query/get-time))
 
 (defn ui
   []

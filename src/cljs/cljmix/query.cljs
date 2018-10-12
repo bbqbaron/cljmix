@@ -2,6 +2,18 @@
   (:require [venia.core :as v]
             [re-graph.core :as gql]))
 
+(def get-time-query
+  (v/graphql-query {:venia/queries [[:getTime]]
+                    :venia/operation {:operation/type :query
+                                      :operation/name "GetTime"}}))
+
+(def set-time-mutation
+  (v/graphql-query {:venia/queries [[:setTime {:time :$time}]]
+                    :venia/variables [{:variable/name "time"
+                                       :variable/type :Float!}]
+                    :venia/operation {:operation/type :mutation
+                                      :operation/name "SetTime"}}))
+
 (def character-fragment [[:data
                           [
                            :total
@@ -83,6 +95,18 @@
                                        :variable/type :String!}
                                       {:variable/name "offset"
                                        :variable/type :Int}]}))
+
+(defn set-time
+  [time]
+  [::gql/mutate set-time-mutation
+   {:time time}
+   [:set-time-result time]])
+
+(defn get-time
+  []
+  [::gql/query get-time-query
+   {}
+   [:get-time-result]])
 
 (defn get-chars
   [ids]
