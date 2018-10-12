@@ -5,14 +5,11 @@
 (rf/reg-event-fx
   :subscribed
   (fn [world [_ payload]]
-    (tag "hm" (get-in payload [:data]))
     {:dispatch (cljmix.query/get-feed
                  0)
      :db       (assoc (:db world)
                  :subscribed-characters
-                 (->> (get-in payload [:data :subscribeCharacter])
-                      (sort-by
-                        #(get-in % [:data :results 0 :name]))))}))
+                 (get-in payload [:data :subscribeCharacter]))}))
 
 (rf/reg-event-fx
   :unsubscribed
@@ -20,9 +17,7 @@
     {:db       (assoc
                  (:db world)
                  :subscribed-characters
-                 (->> (get-in payload [:data :unsubscribeCharacter])
-                      (sort-by
-                        #(get-in % [:data :results 0 :name]))))
+                 (get-in payload [:data :unsubscribeCharacter]))
      :dispatch (cljmix.query/get-feed
                  0)}))
 

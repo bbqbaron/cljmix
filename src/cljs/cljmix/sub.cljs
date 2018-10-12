@@ -18,13 +18,18 @@
 
 (rf/reg-sub :page (fn [db _] (:page db)))
 
-(rf/reg-sub :unread-comics
-            (fn [db _]
-              (:feed db)))
-
-(rf/reg-sub :subs
+(rf/reg-sub
+  :unread-comics
   (fn [db _]
-    (:subscribed-characters db)))
+    (:feed db)))
 
-(rf/reg-sub :time
+(rf/reg-sub
+  :subs
+  (fn [db _]
+    (->> (:subscribed-characters db)
+         (sort-by
+           #(get-in % [:data :results 0 :name])))))
+
+(rf/reg-sub
+  :time
   (fn [db _] (:time db)))

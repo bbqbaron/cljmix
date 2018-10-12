@@ -39,9 +39,7 @@
   :subs-result
   (fn [db [_ payload]]
     (assoc db :subscribed-characters
-              (->> (get-in payload [:data :subscribedCharacters])
-                   (sort-by
-                     #(get-in % [:data :results 0 :name]))))))
+              (get-in payload [:data :subscribedCharacters]))))
 
 (rf/reg-event-db
   :marked-read
