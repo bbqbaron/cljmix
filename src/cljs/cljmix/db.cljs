@@ -6,7 +6,7 @@
   :initialize
   (fn [db _]
     (-> db
-        (assoc :page :page/queue)
+        (assoc :page :page/subs)
         (assoc :feed []))))
 
 (rf/reg-event-db
@@ -38,7 +38,10 @@
 (rf/reg-event-db
   :subs-result
   (fn [db [_ payload]]
-    (assoc db :subscribed-characters (get-in payload [:data :subscribedCharacters]))))
+    (assoc db :subscribed-characters
+              (->> (get-in payload [:data :subscribedCharacters])
+                   (sort-by
+                     #(get-in % [:data :results 0 :name]))))))
 
 (rf/reg-event-db
   :marked-read

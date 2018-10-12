@@ -17,11 +17,11 @@
                               (.preventDefault e)
                               (let [val @state]
                                 (rf/dispatch (query/set-time (.valueOf (js/Date. val))))))}
-          [:input {:type "date"
+          [:input {:type  "date"
                    :on-change
-                         (fn [e]
-                           (let [val (.. e -target -value)]
-                             (reset! state val)))
+                          (fn [e]
+                            (let [val (.. e -target -value)]
+                              (reset! state val)))
                    :value @state}]
           [:button {:type "submit"} "Submit"]]]))))
 
@@ -43,20 +43,29 @@
             :grid-template-rows    "1fr 1fr 1fr 1fr"}}
    els])
 
+(defn show-sub
+  [sub]
+  (let [character (get-in sub [:data :results 0])]
+    [:div.container {:key (:id character)}
+     [:div.row>img {:src
+                           (let [{:keys [extension path]} (:thumbnail character)]
+                             (str path "." extension))
+                    :style {:width 128 :height 128}}]
+     [:div.row
+      [:div.one-half.column>p (:name character)]
+      [:div.one-half.column>button
+       {:on-click #(rf/dispatch
+                     (query/unsubscribe-character
+                       (:id character)))}
+       "X"]]]))
+
 (defn show-subs []
   (let [subscribed @(rf/subscribe [:subs])]
     [:div
      [show-time]
      [:p "Subscribed to: "]
      [grid (map
-             (fn [sub]
-               (let [character (get-in sub [:data :results 0])]
-                 [:div {:key (:id character)}
-                  [:p (:name character)]
-                  [:button {:on-click #(rf/dispatch
-                                         (query/unsubscribe-character
-                                           (:id character)))}
-                   "Unsubscribe"]]))
+             show-sub
              subscribed)]]))
 
 (defn char-search-results []
