@@ -1,14 +1,16 @@
 (ns cljmix.fx
-  (:require [re-frame.core :as rf]))
+  (:require [re-frame.core :as rf]
+            [cljmix.util :refer [tag]]))
 
 (rf/reg-event-fx
   :subscribed
   (fn [world [_ payload]]
+    (tag "hm" (get-in payload [:data]))
     {:dispatch (cljmix.query/get-feed
                  0)
      :db       (assoc (:db world)
                  :subscribed-characters
-                 (->> (get-in payload [:data :subscribedCharacters])
+                 (->> (get-in payload [:data :subscribeCharacter])
                       (sort-by
                         #(get-in % [:data :results 0 :name]))))}))
 

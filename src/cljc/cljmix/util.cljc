@@ -21,7 +21,7 @@
   ([x]
    (fn [y]
      (tag x y)))
-  ([x y] #?(:cljs (js/console.log x y) :default (println x y))
+  ([x y] #?(:cljs (js/console.log x (clj->js y)) :default (println x y))
    y))
 
 (defn log
