@@ -7,16 +7,23 @@
             cljmix.sub
             [reagent.core :as r]))
 
+
 (defn show-time []
   (let [state (r/atom nil)]
     (fn []
       (let [time @(rf/subscribe [:time])]
         [:div
-         [:p "After: " (js/Date time)]
+         [:p "Comics after: " (.toLocaleDateString (js/Date. time) "en-US")]
          [:form {:on-submit (fn [e]
                               (.preventDefault e)
                               (let [val @state]
-                                (rf/dispatch (query/set-time (.valueOf (js/Date. val))))))}
+                                (rf/dispatch (query/set-time
+                                               (+
+                                                 (.valueOf (js/Date. val))
+                                                 (*
+                                                   ; TODO just get a date lib; i think my browser isn't even right about DST
+                                                   (+ 60 (.getTimezoneOffset (js/Date.))
+                                                      60 1000)))))))}
           [:input {:type  "date"
                    :on-change
                           (fn [e]

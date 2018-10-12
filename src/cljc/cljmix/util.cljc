@@ -1,10 +1,5 @@
 (ns cljmix.util)
 
-(defn default-to
-  "AKA coalesce."
-  [val other]
-  (or val other))
-
 (defn uniq-by
   "Produce a vector of objects unique by a supplied function,
   preserving order. The first object with a given key wins, naturally."
@@ -21,12 +16,23 @@
             (rest rem)
             (conj seen key)))))))
 
+(defn tag
+  "Log and return a value"
+  ([x]
+   (fn [y]
+     (tag x y)))
+  ([x y] #?(:cljs (js/console.log x y) :default (println x y))
+   y))
+
 (defn log
   "Log all traffic into and out of `f`,
   prefixed by `tag`."
-  [tag f]
-  (fn [& args]
-    (println tag "got" args)
-    (let [res (apply f args)]
-      (println tag "produced" res)
-      res)))
+  ([tag]
+   (fn [f]
+     (tag tag f)))
+  ([tag f]
+   (fn [& args]
+     (println tag "got" args)
+     (let [res (apply f args)]
+       (println tag "produced" res)
+       res))))
