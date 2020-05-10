@@ -9,3 +9,11 @@ You could theoretically host and run this yourself, but:
 ## Caveat
 
 The [Prevayler](https://github.com/klauswuestefeld/prevayler-clj) db I threw in to speed up queries does not currently TTL the results of API calls. I believe it is therefore in violation of the Marvel ToS, since caching may not be indefinite. **Therefore, run this at your risk**.
+
+## Dev Setup
+
+1. Add your keys to a `private.edn` resource structured like [the example](#resources/example-creds.edn)
+1. `lein cljsbuild auto`
+  * TODO add figwheel
+1. Call `sg/create-schema` in `user` to generate the GraphQL schema from the Marvel JSON schema.
+1. Call `start` in `user` namespace

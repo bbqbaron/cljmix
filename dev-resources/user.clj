@@ -1,6 +1,7 @@
 (ns user
   (:require
     [com.walmartlabs.lacinia :as lacinia]
+    [cljmix.schema-gen :as sg]
     [cljmix.system :as system]
     [clojure.java.browse :refer [browse-url]]
     [clojure.walk :as walk]
@@ -63,3 +64,4 @@
       (lacinia/execute query-string nil nil)
       simplify))
 
+#_(sg/create-schema)
