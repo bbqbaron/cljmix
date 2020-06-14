@@ -82,7 +82,8 @@
        (fn [{id :id char-name :name}]
          [:div {:key id}
           [:p char-name]
-          [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"]])
+          [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"]
+          [:button {:on-click #(rf/dispatch (query/subscribe 0 :character id))} "Subscribe to 0 (beta)"]])
        (vals chars))]))
 
 (defn show-comic [i c]

@@ -144,6 +144,14 @@
    {:offset offset}
    [:feed-result]])
 
+(defn subscribe [sub-id ent-type ent-id]
+  [::gql/mutate
+   subscribe-mutation
+   {:subId sub-id
+    :entityType ent-type
+    :entityId ent-id}
+   [:subscribed]])
+
 (defn subscribe-character [char-id]
   [::gql/mutate
    subscribe-character-mutation
@@ -156,9 +164,4 @@
    {:charId char-id}
    [:unsubscribed-character]])
 
-(defn subscribe [sub-id ent-type ent-id]
-  [::gql/mutate
-   sub-mutation
-   {:subId sub-id
-    :entityId ent-id
-    :entityType ent-type}])
+

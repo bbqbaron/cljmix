@@ -73,12 +73,12 @@
 
 (defn subscribe
   [db marvel-req _ args _]
-  (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:sub-id :entity-type :entity-id])])
+  (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:subId :entityType :entityId])])
         subscribed (:subscribed new-db)
         chars (map
-                #(marvel-req (str "v1/public/" (entity-type->url-seg (:entity-type args)) "/" %))
-                subscribed)]
-    chars))
+                #(marvel-req (str "v1/public/" (entity-type->url-seg (keyword (:entityType args))) "/" %))
+                (get-in subscribed [0 :character ]))]
+    (map (fn [x] (schema/tag-with-type x :CharacterDataWrapper)) chars)))
 
 (defn unsubscribe
   [db marvel-req _ args _]
