@@ -56,7 +56,7 @@
 
 (defn new-system [_] (system/new-system))
 
-(set-init new-system)
+#_(set-init new-system)
 
 (defn q
   [query-string]
@@ -67,3 +67,5 @@
       simplify))
 
 #_(sg/create-schema)
+(reset)
+

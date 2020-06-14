@@ -23,6 +23,14 @@
           :unsubscribe-character
           (update state :subscribed-characters
                   (partial filter #(not= % event-val)))
+          :subscribe
+          (let [{:keys [subId entityId entityType]} event-val]
+            (update-in state [:subscribed subId entityType]
+                       #(conj (or % #{}) entityId)))
+          :unsubscribe
+          (let [[sub-id ent-type id] event-val]
+            (update-in state [:subscribed sub-id ent-type]
+                       #(disj (or % #{}) id)))
           :set-time
           (assoc state :time event-val)
           state)]
