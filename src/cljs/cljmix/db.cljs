@@ -57,3 +57,7 @@
   (fn [db [_ time]]
     (assoc db :time time)))
 
+(rf/reg-event-db
+  :switch-subs
+  (fn [db [_ id]]
+    (assoc db :sub-set id)))

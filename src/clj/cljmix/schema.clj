@@ -67,6 +67,28 @@
     flatten
     (filter (comp some? :resolve))))
 
+(def entity-type->url-seg
+  {:character "characters"
+   :creator   "creators"})
+
+(defn subscribe
+  [db marvel-req _ args _]
+  (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:sub-id :entity-type :entity-id])])
+        subscribed (:subscribed new-db)
+        chars (map
+                #(marvel-req (str "v1/public/" (entity-type->url-seg (:entity-type args)) "/" %))
+                subscribed)]
+    chars))
+
+(defn unsubscribe
+  [db marvel-req _ args _]
+  (let [[new-db] (prevayler/handle! db [:unsubscribe (select-keys args [:sub-id :entity-type :entity-id])])
+        subscribed (:subscribed new-db)
+        chars (map
+                #(marvel-req (str "v1/public/" (entity-type->url-seg (:entity-type args)) "/" %))
+                subscribed)]
+    chars))
+
 (defn subscribe-character
   [db marvel-req _ args _]
   (let [[new-db] (prevayler/handle! db [:subscribe-character (:charId args)])
@@ -103,11 +125,29 @@
     :getTime
     {:type    'Float
      :resolve :queries/getTime}}
+   :unions
+   {:entity
+    {:members [:CharacterDataWrapper :CreatorDataWrapper]}}
+   :enums
+   {:entityType
+    {:values [:character :creator]}}
    :mutations
    {:markRead
     {:args    {:digitalId {:type '(non-null Int)}}
      :type    '(non-null (list (non-null Int)))
      :resolve :mutation/markRead}
+    :subscribe
+    {:args    {:subId      {:type '(non-null Int)}
+               :entityType {:type '(non-null :entityType)}
+               :entityId   {:type '(non-null Int)}}
+     :resolve :mutation/subscribe
+     :type    '(non-null (list (non-null :entity)))}
+    :unsubscribe
+    {:args    {:subId      {:type '(non-null Int)}
+               :entityType {:type '(non-null :entityType)}
+               :entityId   {:type '(non-null Int)}}
+     :resolve :mutation/unsubscribe
+     :type    '(non-null (list (non-null :entity)))}
     :subscribeCharacter
     {:args    {:charId {:type '(non-null Int)}}
      :resolve :mutation/subscribeCharacter
@@ -157,6 +197,8 @@
                                             [])]))
                           (into {}))]
     (-> schema-edn
+        (update :enums merge (:enums non-marvel-schema))
+        (update :unions merge (:unions non-marvel-schema))
         (update :queries merge (:queries non-marvel-schema))
         (update :mutations merge (:mutations non-marvel-schema))
         (util/attach-resolvers
@@ -165,6 +207,8 @@
             placeholders
             {:queries/readHistory           (get-history db-provider)
              :mutation/markRead             (update-history db-provider)
+             :mutation/subscribe            (partial subscribe (:db db-provider) marvel-req)
+             :mutation/unsubscribe          (partial unsubscribe (:db db-provider) marvel-req)
              :mutation/subscribeCharacter   (partial subscribe-character (:db db-provider) marvel-req)
              :mutation/unsubscribeCharacter (partial unsubscribe-character (:db db-provider) marvel-req)
              :queries/getFeed               get-feed

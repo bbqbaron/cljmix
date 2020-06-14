@@ -3,7 +3,7 @@
             [cljmix.util :refer [tag]]))
 
 (rf/reg-event-fx
-  :subscribed
+  :subscribed-character
   (fn [world [_ payload]]
     {:dispatch (cljmix.query/get-feed
                  0)
@@ -12,7 +12,7 @@
                  (get-in payload [:data :subscribeCharacter]))}))
 
 (rf/reg-event-fx
-  :unsubscribed
+  :unsubscribed-character
   (fn [world [_ payload]]
     {:db       (assoc
                  (:db world)

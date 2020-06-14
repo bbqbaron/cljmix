@@ -15,8 +15,7 @@
                                       :operation/name "SetTime"}}))
 
 (def character-fragment [[:data
-                          [
-                           :total
+                          [:total
                            :count
                            :limit
                            :offset
@@ -39,7 +38,21 @@
                     :venia/operation {:operation/type :query
                                       :operation/name "GetSubs"}}))
 
-(def unsub-mutation
+(def subscribe-mutation
+  (v/graphql-query {:venia/queries   [[:subscribe {:subId :$subId
+                                                   :entityType :$entityType
+                                                   :entityId :$entityId}
+                                       character-fragment]]
+                    :venia/variables [{:variable/name "subId"
+                                       :variable/type :Int!}
+                                      {:variable/name "entityId"
+                                       :variable/type :Int!}
+                                      {:variable/name "entityType"
+                                       :variable/type :entityType}]
+                    :venia/operation {:operation/type :mutation
+                                      :operation/name "Subscribe"}}))
+
+(def unsubscribe-character-mutation
   (v/graphql-query {:venia/queries   [[:unsubscribeCharacter {:charId :$charId}
                                        character-fragment]]
                     :venia/variables [{:variable/name "charId"
@@ -135,10 +148,17 @@
   [::gql/mutate
    subscribe-character-mutation
    {:charId char-id}
-   [:subscribed]])
+   [:subscribed-character]])
 
 (defn unsubscribe-character [char-id]
   [::gql/mutate
-   unsub-mutation
+   unsubscribe-character-mutation
    {:charId char-id}
-   [:unsubscribed]])
+   [:unsubscribed-character]])
+
+(defn subscribe [sub-id ent-type ent-id]
+  [::gql/mutate
+   sub-mutation
+   {:subId sub-id
+    :entityId ent-id
+    :entityType ent-type}])
