@@ -13,6 +13,8 @@
           :tag-cache
           (let [{:keys [path result]} event-val]
             (assoc-in state (cons :tag-cache path) result))
+          :clear-server-cache
+          (dissoc state :server-cache)
           :server-cache
           (let [{:keys [path body]} event-val]
             (assoc-in state (cons :server-cache path) body))
@@ -32,15 +34,21 @@
   (dosync
     (ref-set db nil)))
 
+(defn reset-server []
+  (do
+    (dosync
+     (let [new-db (prevayler! reducer)]
+       (ref-set db new-db)
+       new-db))
+    nil))
+
 (defrecord Db []
   component/Lifecycle
   (start [this]
     (dosync
       (when (nil? @db)
         (do (println "new db")
-            (let [new-db (prevayler! reducer)]
-              (ref-set db new-db)
-              new-db))))
+            (reset-server))))
     (assoc this :db @db))
 
   (stop [this]
