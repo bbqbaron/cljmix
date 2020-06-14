@@ -4,6 +4,7 @@
     [cljmix.db :as db]
     [cljmix.schema-gen :as sg]
     [cljmix.system :as system]
+    [cljmix.main :refer [-main]]
     [clojure.java.browse :refer [browse-url]]
     [clojure.walk :as walk]
     [prevayler :as pv]
@@ -56,8 +57,6 @@
 
 (defn new-system [_] (system/new-system))
 
-#_(set-init new-system)
-
 (defn q
   [query-string]
   (-> new-system
@@ -66,6 +65,4 @@
       (lacinia/execute query-string nil nil)
       simplify))
 
-#_(sg/create-schema)
-(reset)
-
+(-main)
