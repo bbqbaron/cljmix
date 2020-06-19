@@ -20,6 +20,15 @@
                 new-chars))))
 
 (rf/reg-event-db
+  :series-search-result
+  (fn [db [_ payload]]
+    (let [xs (->> payload
+                         (#(get-in % [:data :getSeriesCollection :data :results]))
+                         (map (juxt :id identity))
+                         (into {}))]
+      (assoc db :series-search-result xs))))
+
+(rf/reg-event-db
   :page
   (fn [db [_ page]]
     (assoc db :page page)))

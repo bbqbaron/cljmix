@@ -25,6 +25,17 @@
                              [:thumbnail
                               [:extension :path]]]]]]])
 
+(def series-fragment [[:data
+                          [:total
+                           :count
+                           :limit
+                           :offset
+                           [:results
+                            [:title
+                             :id
+                             [:thumbnail
+                              [:extension :path]]]]]]])
+
 (def mark-read
   (v/graphql-query {:venia/queries   [[:markRead {:digitalId :$digitalId}]]
                     :venia/variables [{:variable/name "digitalId"
@@ -109,6 +120,18 @@
                                       {:variable/name "offset"
                                        :variable/type :Int}]}))
 
+(def series-search-query
+  (v/graphql-query {:venia/operation {:operation/name "SearchComics"
+                                      :operation/type :query}
+                    :venia/queries   [[:getSeriesCollection
+                                       {:titleStartsWith :$seriesName
+                                        :offset         :$offset}
+                                       series-fragment]]
+                    :venia/variables [{:variable/name "seriesName"
+                                       :variable/type :String!}
+                                      {:variable/name "offset"
+                                       :variable/type :Int}]}))
+
 (defn set-time
   [time]
   [::gql/mutate set-time-mutation
@@ -130,12 +153,25 @@
        [:char-result %]])
     ids))
 
+(defn search-series
+  [series-name]
+  [::gql/query
+   series-search-query
+   {:seriesName series-name}
+   [:series-search-result]])
+
 (defn search-char
   [char-name]
   [::gql/query
    char-search-query
    {:charName char-name}
    [:char-search-result]])
+
+(defn search
+  [etype text]
+  (case etype
+    :character (search-char text)
+    :series (search-series text)))
 
 (defn get-feed
   [offset]

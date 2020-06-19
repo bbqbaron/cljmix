@@ -75,6 +75,17 @@
              show-sub
              subscribed)]]))
 
+(defn search-results []
+  (let [chars @(rf/subscribe [:char-search-result])]
+    [:div
+     (map
+       (fn [{id :id char-name :name}]
+         [:div {:key id}
+          [:p char-name]
+          [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"]
+          [:button {:on-click #(rf/dispatch (query/subscribe 0 :character id))} "Subscribe to 0 (beta)"]])
+       (vals chars))]))
+
 (defn char-search-results []
   (let [chars @(rf/subscribe [:char-search-result])]
     [:div
@@ -108,6 +119,27 @@
                               [:marked-read (:digitalId c)]])}
     "Dismiss"]])
 
+(defn search-form []
+  (let [etype (r/atom :character)
+        search (r/atom "")]
+    (fn []
+      [:form
+       {:on-submit (fn [e]
+                     (.preventDefault e)
+                     (rf/dispatch (query/search @etype @search)))}
+       [:select
+        {:on-change
+         (fn [a]
+           (reset! etype (keyword (.. a -target -value))))}
+        [:option {:value :character :selected (= @etype :character)} "character"]
+        [:option {:value :series :selected (= @etype :series)} "series"]]
+       [:input {:type       "text" :placeholder "Find something" :value @search
+                :auto-focus true
+                :on-change  #(reset! search (-> % .-target .-value))}]
+       [:button {:on-click #(rf/dispatch (query/search @etype @search))
+                 :type     :submit}
+        "GO"]])))
+
 (defn char-search-form []
   (let [search (r/atom "")]
     (fn []
@@ -133,6 +165,8 @@
   [:div
    [show-subs]
    [char-search-results]
+   [search-results]
+   [search-form]
    [char-search-form]])
 
 (defn queue []
