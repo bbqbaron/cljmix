@@ -149,13 +149,12 @@
          characters (sort (set (:subscribed-characters state)))]
      (if (empty? characters)
        {:results []}
-       (let [character-chunks (partition 10 10 nil characters)
-             time-point (:time state)
+       (let [time-point (:time state)
              raw (chan)
              out (async/transduce
                    (comp
                      (map (partial get-results already-read))
-                     (take (count character-chunks)))
+                     (take (count characters)))
                    concat
                    []
                    raw)]
@@ -163,7 +162,7 @@
            (if (> page feed-tries)
              {:results [] :offset (* page page-size)}
              (do
-               (doseq [character-chunk character-chunks]
+               (doseq [character characters]
                  (marvel-req-async
                    raw db
                    "v1/public/comics"
@@ -175,7 +174,7 @@
                                         (.format
                                           date-format
                                           #inst "2019-12-31")]})]
-                     (merge time-params {:characters      (vec character-chunk)
+                     (merge time-params {:characters      [character]
                                          :orderBy         "onsaleDate"
                                          :hasDigitalIssue true
                                          :offset          (* page page-size)
@@ -193,7 +192,8 @@
                                              (filter #(= (:type %) "onsaleDate"))
                                              first
                                              :date)]
-                               (.parse date-format onsale-date)))))}
+                               (.parse date-format onsale-date))))
+                         (take 50))}
                    (recur (inc page))))))))))))
 
 (defrecord MarvelProvider [marvel db-provider]
