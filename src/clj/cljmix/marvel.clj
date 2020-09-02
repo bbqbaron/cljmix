@@ -175,7 +175,7 @@
                                           date-format
                                           #inst "2019-12-31")]})]
                      (merge time-params {:characters      [character]
-                                         :orderBy         "onsaleDate"
+                                         :orderBy         "onsaleDate,title,issueNumber"
                                          :hasDigitalIssue true
                                          :offset          (* page page-size)
                                          :limit           page-size}))))
