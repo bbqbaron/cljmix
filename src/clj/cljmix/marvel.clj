@@ -1,11 +1,12 @@
 (ns cljmix.marvel
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]
-            [clojure.core.async :refer [<!! >! chan close! go]]
+            [clojure.core.async :refer [<!! >! chan close! go alt!! timeout]]
             [cheshire.core :as json]
             [clj-http.client :as http]
             [prevayler :as prv]
-            [clojure.core.async :as async])
+            [clojure.core.async :as async]
+            [cljmix.db :as db])
   (:import (java.security MessageDigest)
            (java.text SimpleDateFormat)
            (java.util Date)))
@@ -113,8 +114,12 @@
   ([db path query]
    (let [out (chan)]
      (marvel-req-async out db path query)
-     (let [result (<!! out)]
+     (let [result (alt!!
+                    (timeout 20000) :timeout
+                    out ([v] v))]
        (close! out)
+       (when (= :timeout result)
+         (throw (ex-info "Timeout" {})))
        (when (instance? Throwable result)
          (throw result))
        result))))
@@ -210,3 +215,4 @@
   []
   {:marvel-provider (com.stuartsierra.component/using (map->MarvelProvider {})
                                                       [:db-provider])})
+

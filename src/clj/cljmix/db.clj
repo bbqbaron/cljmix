@@ -48,20 +48,19 @@
     (ref-set db nil)))
 
 (defn reset-db []
-  (do
-    (dosync
-     (let [new-db (prevayler! reducer)]
-       (ref-set db new-db)
-       new-db))
-    nil))
+  (dosync
+   (let [new-db (prevayler! reducer)]
+     (ref-set db new-db)
+     new-db))
+  nil)
 
 (defrecord Db []
   component/Lifecycle
   (start [this]
     (dosync
       (when (nil? @db)
-        (do (println "new db")
-            (reset-db))))
+        (println "new db")
+        (reset-db)))
     (assoc this :db @db))
 
   (stop [this]
@@ -70,3 +69,9 @@
 (defn new-db []
   {:db-provider (component/using (map->Db {})
                                  [])})
+
+(comment
+  (dosync
+  (when (nil? @db)
+    (println "new db")
+    (reset-db))))
