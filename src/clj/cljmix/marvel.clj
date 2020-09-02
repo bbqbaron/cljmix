@@ -173,7 +173,7 @@
                                           time-point)
                                         (.format
                                           date-format
-                                          #inst "2019-12-31")]})]
+                                          #inst "2020-06-01")]})]
                      (merge time-params {:characters      [character]
                                          :orderBy         "onsaleDate,title,issueNumber"
                                          :hasDigitalIssue true
