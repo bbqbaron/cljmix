@@ -69,7 +69,4 @@
   (r/set-refresh-dirs)
   (r/refresh)
   (reset)
-  (:subscribed @@db/db)
-
-
   (-main))

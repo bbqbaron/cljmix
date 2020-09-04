@@ -4,12 +4,9 @@
             [clojure.core.async :refer [<!! >! chan close! go alt!! timeout]]
             [cheshire.core :as json]
             [clj-http.client :as http]
-            [prevayler :as prv]
-            [clojure.core.async :as async]
-            [cljmix.db :as db])
+            [prevayler :as prv])
   (:import (java.security MessageDigest)
-           (java.text SimpleDateFormat)
-           (java.util Date)))
+           (java.text SimpleDateFormat)))
 
 (defn- get-keys
   []
@@ -29,7 +26,7 @@
         raw (.digest algorithm (.getBytes s))]
     (format "%032x" (BigInteger. 1 raw))))
 
-(defn- marvel-url
+(defn marvel-url
   [path]
   (let [{pub-key :public private-key :private} api-keys
         ts (System/currentTimeMillis)
@@ -145,61 +142,49 @@
 
 (def date-format (SimpleDateFormat. "yyyy-MM-dd"))
 
+(defonce file-data (map #(read-string (slurp (str "comics" % ".edn")))
+                             (range 476)))
+
 (defn get-feed
   ([db]
    (get-feed db nil nil nil))
   ([db _ _ _]
-   (let [state @db
-         already-read (set (:read state))
-         characters (sort (set (:subscribed-characters state)))]
-     (if (empty? characters)
-       {:results []}
-       (let [time-point (:time state)
-             raw (chan)
-             out (async/transduce
-                   (comp
-                     (map (partial get-results already-read))
-                     (take (count characters)))
-                   concat
-                   []
-                   raw)]
-         (loop [page 0]
-           (if (> page feed-tries)
-             {:results [] :offset (* page page-size)}
-             (do
-               (doseq [character characters]
-                 (marvel-req-async
-                   raw db
-                   "v1/public/comics"
-                   (let [time-params
-                         (when (some? time-point)
-                           {:dateRange [(.format
-                                          date-format
-                                          time-point)
-                                        (.format
-                                          date-format
-                                          #inst "2020-06-01")]})]
-                     (merge time-params {:characters      [character]
-                                         :orderBy         "onsaleDate,title,issueNumber"
-                                         :hasDigitalIssue true
-                                         :offset          (* page page-size)
-                                         :limit           page-size}))))
-               (let [results (async/<!! out)]
-                 (close! raw)
-                 (if (not (empty? results))
-                   {:results
-                    (->> results
-                         (uniq-by :digitalId)
-                         (sort-by
-                           (fn [c]
-                             (when-let [onsale-date
-                                        (->> c :dates
-                                             (filter #(= (:type %) "onsaleDate"))
-                                             first
-                                             :date)]
-                               (.parse date-format onsale-date))))
-                         (take 50))}
-                   (recur (inc page))))))))))))
+   {:results (let [characters (set (:subscribed-characters @db))
+                   already-read (set (:read @db))
+                   time (:time @db)]
+               (->> file-data
+                    (mapcat (comp :results :data) )
+                    (filter
+                     (fn [{{:keys [items]} :characters}]
+                       (some
+                        (comp
+                         characters
+                         read-string
+                         second
+                         (partial re-find #"\/(\d+)$")
+                         :resourceURI)
+                        items)))
+                    (remove (comp zero? :digitalId))
+                    (remove
+                     (comp already-read :digitalId))
+                    (remove
+                     (fn [c]
+                       (when-let [onsale-date
+                                  (->> c :dates
+                                       (filter #(= (:type %) "onsaleDate"))
+                                       first
+                                       :date)]
+                         (.before (.parse date-format onsale-date)
+                                  (java.util.Date. ^Long time)))))
+                    (sort-by
+                     (fn [c]
+                       (when-let [onsale-date
+                                  (->> c :dates
+                                       (filter #(= (:type %) "onsaleDate"))
+                                       first
+                                       :date)]
+                         (.parse date-format onsale-date))))
+                    (take 50)))}))
 
 (defrecord MarvelProvider [marvel db-provider]
   com.stuartsierra.component/Lifecycle
