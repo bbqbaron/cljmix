@@ -3,6 +3,14 @@
             [cljmix.util :refer [tag]]))
 
 (rf/reg-event-fx
+  :subscribed
+  (fn [world [_ payload]]
+    {:dispatch (cljmix.query/get-feed 0)
+     :db       (assoc (:db world)
+                 :subscribed
+                 payload)}))
+
+(rf/reg-event-fx
   :subscribed-character
   (fn [world [_ payload]]
     {:dispatch (cljmix.query/get-feed

@@ -4,7 +4,8 @@
             [clojure.core.async :refer [<!! >! chan close! go alt!! timeout]]
             [cheshire.core :as json]
             [clj-http.client :as http]
-            [prevayler :as prv])
+            [prevayler :as prv]
+            [cljmix.db :as db])
   (:import (java.security MessageDigest)
            (java.text SimpleDateFormat)))
 
@@ -149,21 +150,33 @@
   ([db]
    (get-feed db nil nil nil))
   ([db _ _ _]
-   {:results (let [characters (set (:subscribed-characters @db))
+   {:results (let [subscriptions (:subscribed @db)
+                   characters (set (concat (:subscribed-characters @db)
+                                           (mapcat :character (vals subscriptions))))
+                   series (set (mapcat :series (vals subscriptions)))
                    already-read (set (:read @db))
                    time (:time @db)]
                (->> file-data
                     (mapcat (comp :results :data) )
                     (filter
-                     (fn [{{:keys [items]} :characters}]
-                       (some
-                        (comp
-                         characters
-                         read-string
-                         second
-                         (partial re-find #"\/(\d+)$")
-                         :resourceURI)
-                        items)))
+                     (fn [{{:keys [items]} :characters
+                           issue-series :series :as bk}]
+                       (or
+                        ((comp
+                          series
+                          read-string
+                          second
+                          (partial re-find #"\/(\d+)$")
+                          :resourceURI)
+                         issue-series)
+                        (some
+                         (comp
+                          characters
+                          read-string
+                          second
+                          (partial re-find #"\/(\d+)$")
+                          :resourceURI)
+                         items))))
                     (remove (comp zero? :digitalId))
                     (remove
                      (comp already-read :digitalId))

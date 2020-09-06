@@ -50,7 +50,7 @@
             :grid-template-rows    "1fr 1fr 1fr 1fr"}}
    els])
 
-(defn show-sub
+(defn show-char-sub
   [sub]
   (let [character (get-in sub [:data :results 0])]
     [:div.container {:key (:id character)}
@@ -66,25 +66,60 @@
                        (:id character)))}
        "X"]]]))
 
+(defn show-char-subs []
+  (let [subscribed @(rf/subscribe [:char-subs])]
+    [:div
+     [show-time]
+     [:p "Subscribed to: "]
+     [grid (map
+             show-char-sub
+             subscribed)]]))
+
+(defn show-sub [s]
+  [:div.container {:key (:id s)}
+   [:div.row
+    [:div.one-half.column>p (:id s)]
+    [:div.one-half.column>button
+     {:on-click #(rf/dispatch
+                  (query/unsubscribe
+                   (:id s)))}
+     "X"]]])
+
 (defn show-subs []
   (let [subscribed @(rf/subscribe [:subs])]
     [:div
      [show-time]
      [:p "Subscribed to: "]
-     [grid (map
-             show-sub
-             subscribed)]]))
+     (map
+      (fn
+        [sset]
+        [:div
+         (:id sset)
+         [grid
+          (map
+           show-sub (:entities sset))]])
+      subscribed)]))
 
 (defn search-results []
-  (let [chars @(rf/subscribe [:char-search-result])]
+  (let [results @(rf/subscribe [:search-results])]
     [:div
-     (map
-       (fn [{id :id char-name :name}]
-         [:div {:key id}
-          [:p char-name]
-          [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"]
-          [:button {:on-click #(rf/dispatch (query/subscribe 0 :character id))} "Subscribe to 0 (beta)"]])
-       (vals chars))]))
+     (mapcat
+      (fn [[t es]]
+        (map
+         (fn [{id :id
+               :as e}]
+           (let [nm
+                 (e
+                  (case t
+                    :character :name
+                    :series :title))]
+             [:div {:key id}
+              [:p nm]
+              (when (= t :character)
+                [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"])
+              [:button {:on-click #(rf/dispatch (query/subscribe 0 t id))} "Subscribe to 0 (beta)"]]))
+                   (vals es)))
+      results)]))
 
 (defn char-search-results []
   (let [chars @(rf/subscribe [:char-search-result])]
@@ -130,9 +165,10 @@
        [:select
         {:on-change
          (fn [a]
-           (reset! etype (keyword (.. a -target -value))))}
-        [:option {:value :character :selected (= @etype :character)} "character"]
-        [:option {:value :series :selected (= @etype :series)} "series"]]
+           (reset! etype (keyword (.. a -target -value))))
+         :value @etype}
+        [:option {:value :character} "character"]
+        [:option {:value :series} "series"]]
        [:input {:type       "text" :placeholder "Find something" :value @search
                 :auto-focus true
                 :on-change  #(reset! search (-> % .-target .-value))}]
@@ -163,6 +199,7 @@
 
 (defn subs []
   [:div
+   [show-char-subs]
    [show-subs]
    [char-search-results]
    [search-results]

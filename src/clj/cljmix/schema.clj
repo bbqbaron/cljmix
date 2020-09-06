@@ -4,7 +4,10 @@
             [com.walmartlabs.lacinia.schema :as schema]
             [clojure.edn :as edn]
             [com.stuartsierra.component :as component]
-            [prevayler :as prv]))
+            [prevayler :as prv]
+            [cljmix.db :as db]))
+
+(def entity-types [:character :creator :series])
 
 (defn edge-resolver
   ; TODO don't blow up on 404, for resilience
@@ -48,6 +51,7 @@
                   (edge-resolver marvel-req ["stories"])
    :queries/getCharacterIndividual
                   (edge-resolver marvel-req ["characters" [:args :characterId]])
+   :queries/getEntityTypes (constantly entity-types)
    :edge-resolver (partial edge-resolver marvel-req)})
 
 (defn get-schema-edn []
@@ -71,23 +75,31 @@
   {:character "characters"
    :creator   "creators"})
 
+(defn get-subscriptions [db-state]
+   (filter some?
+           (map
+     (fn [[k v]]
+       (when k
+         {:entities
+          (mapcat
+           (fn [[et ids]]
+             (map
+              (fn [id]
+                {:type et :id id})
+              ids))
+           v)
+          :id k}))
+     (:subscribed db-state))))
+
 (defn subscribe
-  [db marvel-req _ args _]
-  (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:subId :entityType :entityId])])
-        subscribed (:subscribed new-db)
-        chars (map
-                #(marvel-req (str "v1/public/" (entity-type->url-seg (keyword (:entityType args))) "/" %))
-                (get-in subscribed [0 :character ]))]
-    (map (fn [x] (schema/tag-with-type x :CharacterDataWrapper)) chars)))
+  [db _ _ args _]
+  (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:subId :entityType :entityId])])]
+    (get-subscriptions new-db)))
 
 (defn unsubscribe
-  [db marvel-req _ args _]
-  (let [[new-db] (prevayler/handle! db [:unsubscribe (select-keys args [:sub-id :entity-type :entity-id])])
-        subscribed (:subscribed new-db)
-        chars (map
-                #(marvel-req (str "v1/public/" (entity-type->url-seg (:entity-type args)) "/" %))
-                subscribed)]
-    chars))
+  [db _ _ args _]
+  (let [[new-db] (prevayler/handle! db [:unsubscribe (select-keys args [:sub-id :entity-type :entity-id])])]
+    (get-subscriptions new-db)))
 
 (defn subscribe-character
   [db marvel-req _ args _]
@@ -108,7 +120,17 @@
     chars))
 
 (def non-marvel-schema
-  {:queries
+  {:objects
+   {:Entity
+    {:fields
+     {:id {:type 'Int}
+      :type {:type :entityType}}}
+    :Subscription
+    {:fields
+     {:id {:type 'Int}
+      :entities
+      {:type '(list (non-null Entity))}}}}
+   :queries
    {:readHistory
     {:type    '(non-null (list (non-null Int)))
      :resolve :queries/readHistory}
@@ -124,13 +146,19 @@
      :resolve :queries/subscribedCharacters}
     :getTime
     {:type    'Float
-     :resolve :queries/getTime}}
+     :resolve :queries/getTime}
+    :entityTypes
+    {:type '(list entityType)
+     :resolve :queries/getEntityTypes}
+    :subscriptions
+    {:type '(list Subscription)
+     :resolve :queries/subscriptions}}
    :unions
    {:entity
     {:members [:CharacterDataWrapper :CreatorDataWrapper]}}
    :enums
    {:entityType
-    {:values [:character :creator]}}
+    {:values entity-types}}
    :mutations
    {:markRead
     {:args    {:digitalId {:type '(non-null Int)}}
@@ -141,13 +169,13 @@
                :entityType {:type '(non-null :entityType)}
                :entityId   {:type '(non-null Int)}}
      :resolve :mutation/subscribe
-     :type    '(non-null (list (non-null :entity)))}
+     :type    '(list Subscription)}
     :unsubscribe
     {:args    {:subId      {:type '(non-null Int)}
                :entityType {:type '(non-null :entityType)}
                :entityId   {:type '(non-null Int)}}
      :resolve :mutation/unsubscribe
-     :type    '(non-null (list (non-null :entity)))}
+     :type    '(list Subscription)}
     :subscribeCharacter
     {:args    {:charId {:type '(non-null Int)}}
      :resolve :mutation/subscribeCharacter
@@ -198,6 +226,7 @@
                           (into {}))]
     (-> schema-edn
         (update :enums merge (:enums non-marvel-schema))
+        (update :objects merge (:objects non-marvel-schema))
         (update :unions merge (:unions non-marvel-schema))
         (update :queries merge (:queries non-marvel-schema))
         (update :mutations merge (:mutations non-marvel-schema))
@@ -215,6 +244,10 @@
              :queries/subscribedCharacters  (partial get-subscribed-characters
                                                      (:db db-provider)
                                                      marvel-req)
+             :queries/subscriptions
+             (fn [& _]
+               (get-subscriptions
+                @(:db db-provider)))
              :queries/getTime               (partial get-time (:db db-provider))
              :mutation/setTime              (partial set-time (:db db-provider))})))))
 

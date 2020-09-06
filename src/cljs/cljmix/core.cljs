@@ -15,9 +15,15 @@
 
 (rf/dispatch (query/get-feed 0))
 (rf/dispatch [::gql/query
+              query/get-char-subs
+              {}
+              [:char-subs-result]])
+
+(rf/dispatch [::gql/query
               query/get-subs
               {}
               [:subs-result]])
+
 (rf/dispatch (query/get-time))
 
 (defn ui

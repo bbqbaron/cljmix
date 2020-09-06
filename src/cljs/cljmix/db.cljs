@@ -26,7 +26,7 @@
                          (#(get-in % [:data :getSeriesCollection :data :results]))
                          (map (juxt :id identity))
                          (into {}))]
-      (assoc db :series-search-result xs))))
+      (assoc-in db [:search-results :series] xs))))
 
 (rf/reg-event-db
   :page
@@ -46,6 +46,13 @@
 
 (rf/reg-event-db
   :subs-result
+  (fn [db [_ payload]]
+    (assoc db :subscribed
+           (get-in payload
+                   [:data :subscriptions]))))
+
+(rf/reg-event-db
+  :char-subs-result
   (fn [db [_ payload]]
     (assoc db :subscribed-characters
               (get-in payload [:data :subscribedCharacters]))))

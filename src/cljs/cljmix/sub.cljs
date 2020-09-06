@@ -12,6 +12,11 @@
     (:char-search-result db)))
 
 (rf/reg-sub
+  :search-results
+  (fn [db _]
+    (:search-results db)))
+
+(rf/reg-sub
   :char
   (fn [db _]
     (get-in db [:characters (:char-id db)])))
@@ -25,6 +30,11 @@
 
 (rf/reg-sub
   :subs
+  (fn [db _]
+    (:subscribed db)))
+
+(rf/reg-sub
+  :char-subs
   (fn [db _]
     (->> (:subscribed-characters db)
          (sort-by

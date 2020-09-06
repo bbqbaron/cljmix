@@ -69,4 +69,5 @@
   (r/set-refresh-dirs)
   (r/refresh)
   (reset)
+  (start)
   (-main))

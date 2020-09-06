@@ -43,9 +43,17 @@
                     :venia/operation {:operation/type :mutation
                                       :operation/name "MarkRead"}}))
 
-(def get-subs
+(def get-char-subs
   (v/graphql-query {:venia/queries   [[:subscribedCharacters
                                        character-fragment]]
+                    :venia/operation {:operation/type :query
+                                      :operation/name "GetCharSubs"}}))
+
+(def get-subs
+  (v/graphql-query {:venia/queries   [[:subscriptions
+                                       [:id
+                                        [:entities
+                                         [:id :type]]]]]
                     :venia/operation {:operation/type :query
                                       :operation/name "GetSubs"}}))
 
@@ -53,7 +61,9 @@
   (v/graphql-query {:venia/queries   [[:subscribe {:subId :$subId
                                                    :entityType :$entityType
                                                    :entityId :$entityId}
-                                       character-fragment]]
+                                       [:id
+                                        [:entities
+                                         [:id :type]]]]]
                     :venia/variables [{:variable/name "subId"
                                        :variable/type :Int!}
                                       {:variable/name "entityId"

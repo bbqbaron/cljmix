@@ -34,13 +34,4 @@
              :compiler     {:main       cljmix.core
                             :asset-path "cljs/out"
                             :output-to  "resources/public/cljs/main.js"
-                            :output-dir "resources/public/cljs/out"}}
-    :test
-            {:source-paths   ["src/cljs" "src/cljc" "test/cljs"]
-             :notify-command ["node" "jsdom-runner.js"]
-             :compiler       {:main          cljmix.runner
-                              :output-to     "resources/test/js/test.js"
-                              :output-dir    "resources/test/cljs/out"
-                              :optimizations :simple
-                              :pretty-print  false}}}})
-
+                            :output-dir "resources/public/cljs/out"}}}})
