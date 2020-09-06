@@ -10,10 +10,26 @@ You could theoretically host and run this yourself, but:
 
 The [Prevayler](https://github.com/klauswuestefeld/prevayler-clj) db I threw in to speed up queries does not currently TTL the results of API calls. I believe it is therefore in violation of the Marvel ToS, since caching may not be indefinite. **Therefore, run this at your risk**.
 
+## Prerequisites
+
+Before you get started, you will need:
+
+1. Leiningen, which you can install by following instructions on [their site](https://leiningen.org/#install) or using [Homebrew](https://formulae.brew.sh/formula/leiningen)
+1. [Java 8+](https://adoptopenjdk.net/)
+1. A [developer API key from Marvel](https://developer.marvel.com/)
+1. [Node and npm](https://nodejs.org/en/download/)
+
 ## Dev Setup
 
 1. Add your keys to a `private.edn` resource structured like [the example](#resources/example-creds.edn)
+1. `npm install`
 1. `lein cljsbuild auto`
-  * TODO add figwheel
+
+- TODO add figwheel
+
+From the `lein repl`:
+
 1. Call `sg/create-schema` in `user` to generate the GraphQL schema from the Marvel JSON schema.
 1. Call `start` in `user` namespace
+
+The project UI will be exposed on `localhost:8292/index.html`
