@@ -149,7 +149,7 @@
     :feed
     ; TODO ComicDataContainer probably promises too much; we can't really count results
     {:type    '(non-null ComicDataContainer)
-
+     :resolve :queries/getFeed
      :args
               {:limit  {:type 'Int}
                :offset {:type 'Int}
