@@ -19,7 +19,8 @@
     (assoc this :server (build-server schema-provider)))
 
   (stop [this]
-    (http/stop server)
+    (when server
+      (http/stop server))
     (assoc this :server nil)))
 
 (defn new-server

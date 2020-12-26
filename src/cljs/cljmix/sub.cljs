@@ -1,5 +1,6 @@
 (ns cljmix.sub
   (:require [re-frame.core :as rf]
+            [cljmix.db :as db]
             [cljmix.util :refer [uniq-by]]))
 
 (rf/reg-sub :db
@@ -27,6 +28,11 @@
   :unread-comics
   (fn [db _]
     (:feed db)))
+
+(rf/reg-sub
+  ::current-subscription
+  (fn [db _]
+    (::db/current-subscription db)))
 
 (rf/reg-sub
   :subs

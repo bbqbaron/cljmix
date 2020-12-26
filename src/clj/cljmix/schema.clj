@@ -5,7 +5,8 @@
             [clojure.edn :as edn]
             [com.stuartsierra.component :as component]
             [prevayler :as prv]
-            [cljmix.db :as db]))
+            [cljmix.db :as db]
+            [cljmix.marvel :as marvel]))
 
 (def entity-types [:character :creator :series])
 
@@ -73,33 +74,44 @@
 
 (def entity-type->url-seg
   {:character "characters"
-   :creator   "creators"})
+   :creator   "creators"
+   :series "series"})
 
-(defn get-subscriptions [db-state]
+(defn get-subscriptions [db-state marvel-req]
    (filter some?
            (map
      (fn [[k v]]
        (when k
          {:entities
           (mapcat
-           (fn [[et ids]]
-             (map
-              (fn [id]
-                {:type et :id id})
-              ids))
-           v)
+            (fn [[et ids]]
+              (map
+                (fn [id]
+                  (let [ent-d (->> (marvel-req (str "v1/public/" (entity-type->url-seg et) "/" id))
+                                   :data :results first)]
+                    (schema/tag-with-type
+                      ent-d
+                      (case et
+                        :series
+                        :Series
+                        :character
+                        :Character
+                        :creator
+                        :Creator))))
+                ids))
+            v)
           :id k}))
      (:subscribed db-state))))
 
 (defn subscribe
-  [db _ _ args _]
+  [db marvel-req _ args _]
   (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:subId :entityType :entityId])])]
-    (get-subscriptions new-db)))
+    (get-subscriptions new-db marvel-req)))
 
 (defn unsubscribe
-  [db _ _ args _]
-  (let [[new-db] (prevayler/handle! db [:unsubscribe (select-keys args [:sub-id :entity-type :entity-id])])]
-    (get-subscriptions new-db)))
+  [db marvel-req _ args _]
+  (let [[new-db] (prevayler/handle! db [:unsubscribe (select-keys args [:subId :entityType :entityId])])]
+    (get-subscriptions new-db marvel-req)))
 
 (defn subscribe-character
   [db marvel-req _ args _]
@@ -129,7 +141,7 @@
     {:fields
      {:id {:type 'Int}
       :entities
-      {:type '(list (non-null Entity))}}}}
+      {:type '(list (non-null EntityData))}}}}
    :queries
    {:readHistory
     {:type    '(non-null (list (non-null Int)))
@@ -137,10 +149,11 @@
     :feed
     ; TODO ComicDataContainer probably promises too much; we can't really count results
     {:type    '(non-null ComicDataContainer)
-     :resolve :queries/getFeed
+
      :args
               {:limit  {:type 'Int}
-               :offset {:type 'Int}}}
+               :offset {:type 'Int}
+               :subscriptionId {:type 'Int}}}
     :subscribedCharacters
     {:type    '(non-null (list (non-null CharacterDataWrapper)))
      :resolve :queries/subscribedCharacters}
@@ -154,8 +167,8 @@
     {:type '(list Subscription)
      :resolve :queries/subscriptions}}
    :unions
-   {:entity
-    {:members [:CharacterDataWrapper :CreatorDataWrapper]}}
+   {:EntityData
+    {:members [:Character :Creator :Series]}}
    :enums
    {:entityType
     {:values entity-types}}
@@ -247,7 +260,8 @@
              :queries/subscriptions
              (fn [& _]
                (get-subscriptions
-                @(:db db-provider)))
+                @(:db db-provider)
+                marvel-req))
              :queries/getTime               (partial get-time (:db db-provider))
              :mutation/setTime              (partial set-time (:db db-provider))})))))
 

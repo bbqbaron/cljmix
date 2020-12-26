@@ -2,9 +2,9 @@
   (:require [re-frame.core :as rf]
             [re-graph.core :as gql]
             [cljmix.query :as query]
-            cljmix.db
+            [cljmix.db :as db]
             cljmix.fx
-            cljmix.sub
+            [cljmix.sub :as sub]
             [reagent.core :as r]))
 
 
@@ -75,15 +75,32 @@
              show-char-sub
              subscribed)]]))
 
-(defn show-sub [s]
-  [:div.container {:key (:id s)}
-   [:div.row
-    [:div.one-half.column>p (:id s)]
-    [:div.one-half.column>button
-     {:on-click #(rf/dispatch
-                  (query/unsubscribe
-                   (:id s)))}
-     "X"]]])
+(defn show-sub [sub-id s]
+  (let [e-type (cond
+                 (:title s) :series
+                 (:lastName s) :creator
+                 (:name s) :character)]
+    [:div.container {:key (:id s)
+                     :style {:border "1px solid black"}}
+     [:div.row
+      [:div.one-half.column>p
+       (cond
+         (:title s) "Series"
+         (:lastName s) "Creator"
+         (:name s) "Character")]
+      [:div.one-half.column>p
+       (or
+         (:title s)
+         (:lastName s)
+         (:name s))]
+      [:div.one-half.column>p (:id s)]
+      [:div.one-half.column>button
+       {:on-click #(rf/dispatch
+                     (query/unsubscribe
+                       sub-id
+                       e-type
+                       (:id s)))}
+       "X"]]]))
 
 (defn show-subs []
   (let [subscribed @(rf/subscribe [:subs])]
@@ -97,11 +114,12 @@
          (:id sset)
          [grid
           (map
-           show-sub (:entities sset))]])
+            (partial show-sub (:id sset)) (:entities sset))]])
       subscribed)]))
 
 (defn search-results []
-  (let [results @(rf/subscribe [:search-results])]
+  (let [results @(rf/subscribe [:search-results])
+        subs @(rf/subscribe [:subs])]
     [:div
      (mapcat
       (fn [[t es]]
@@ -112,24 +130,32 @@
                  (e
                   (case t
                     :character :name
-                    :series :title))]
+                    :series :title
+                    :creator :fullName))]
              [:div {:key id}
               [:p nm]
               (when (= t :character)
                 [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"])
-              [:button {:on-click #(rf/dispatch (query/subscribe 0 t id))} "Subscribe to 0 (beta)"]]))
+              (for [s subs]
+                [:button {:on-click #(rf/dispatch (query/subscribe 0 t id))} (str "Subscribe to " (:id s) "(beta)")])
+              (let [nid (inc (apply max (map :id subs)))]
+                [:button {:on-click #(rf/dispatch (query/subscribe nid t id))} (str "Subscribe to " nid "(beta)")])]))
                    (vals es)))
       results)]))
 
 (defn char-search-results []
-  (let [chars @(rf/subscribe [:char-search-result])]
+  (let [chars @(rf/subscribe [:char-search-result])
+        subs @(rf/subscribe [:subs])]
     [:div
      (map
        (fn [{id :id char-name :name}]
          [:div {:key id}
           [:p char-name]
           [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"]
-          [:button {:on-click #(rf/dispatch (query/subscribe 0 :character id))} "Subscribe to 0 (beta)"]])
+          (for [s subs]
+            [:button {:on-click #(rf/dispatch (query/subscribe 0 :character id))} (str "Subscribe to " (:id s) "(beta)")])
+          (let [nid (inc (apply max (map :id subs)))]
+            [:button {:on-click #(rf/dispatch (query/subscribe nid :character id))} (str "Subscribe to " nid "(beta)")])])
        (vals chars))]))
 
 (defn show-comic [i c]
@@ -168,7 +194,8 @@
            (reset! etype (keyword (.. a -target -value))))
          :value @etype}
         [:option {:value :character} "character"]
-        [:option {:value :series} "series"]]
+        [:option {:value :series} "series"]
+        [:option {:value :creator} "creator"]]
        [:input {:type       "text" :placeholder "Find something" :value @search
                 :auto-focus true
                 :on-change  #(reset! search (-> % .-target .-value))}]
@@ -207,8 +234,19 @@
    [char-search-form]])
 
 (defn queue []
-  (let [unread @(rf/subscribe [:unread-comics])]
+  (let [unread @(rf/subscribe [:unread-comics])
+        subscriptions @(rf/subscribe [:subs])
+        current-sub @(rf/subscribe [::sub/current-subscription])]
     [:div
+     [:select
+      {:on-change
+       (fn [a]
+         (rf/dispatch [:select-subscription (js/parseInt (.. a -target -value))]))
+       :value current-sub}
+      (map
+        (fn [s]
+          [:option {:value (:id s)} (str (:id s))])
+        subscriptions)]
      [grid (doall (map-indexed
                     show-comic
                     unread))]]))

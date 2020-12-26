@@ -1,7 +1,9 @@
 (ns cljmix.db
   (:require [prevayler :refer [prevayler!]]
             [com.stuartsierra.component :as component]
-            [prevayler :as pv]))
+            [prevayler :as pv])
+  (:import (jetbrains.exodus.entitystore PersistentEntityStores PersistentEntityStore EntityStore)
+           (java.io Closeable)))
 
 (def db-reduce
   (atom (fn [state [event-type event-val]]
@@ -12,6 +14,8 @@
                                        (filter some?
                                                (set
                                                  (conj old event-val)))))
+                  :clear-tag-cache
+                  (dissoc state :tag-cache)
                   :tag-cache
                   (let [{:keys [path result]} event-val]
                     (assoc-in state (cons :tag-cache path) result))
@@ -66,9 +70,23 @@
   (stop [this]
     this))
 
+(defrecord Xodus []
+  component/Lifecycle
+  (start [this]
+    (assoc this
+      :xodus
+      (PersistentEntityStores/newInstance "./.loltest3")))
+  (stop [{:keys [xodus] :as this}]
+    (println (keys this))
+    (when ^EntityStore xodus
+      (.close xodus))))
+
 (defn new-db []
   {:db-provider (component/using (map->Db {})
-                                 [])})
+                                 [])
+   :xodus-cache (component/using
+                  (map->Xodus {})
+                  [])})
 
 (comment
   (dosync

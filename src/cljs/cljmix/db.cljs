@@ -6,7 +6,7 @@
   :initialize
   (fn [db _]
     (-> db
-        (assoc :page :page/subs)
+        (assoc :page :page/queue)
         (assoc :feed []))))
 
 (rf/reg-event-db
@@ -17,7 +17,17 @@
                          (map (fn [char] [(:id char) char]))
                          (into {}))]
       (assoc db :char-search-result
-                new-chars))))
+             new-chars))))
+
+(rf/reg-event-db
+  :creator-search-result
+  (fn [db [_ payload]]
+    (let [xs (->> payload
+                         (#(get-in % [:data :getCreatorCollection :data :results]))
+                         (map (fn [char] [(:id char) char]))
+                         (into {}))]
+      (assoc-in db [:search-results :creator]
+                xs))))
 
 (rf/reg-event-db
   :series-search-result
@@ -47,9 +57,11 @@
 (rf/reg-event-db
   :subs-result
   (fn [db [_ payload]]
-    (assoc db :subscribed
-           (get-in payload
-                   [:data :subscriptions]))))
+    (let [subscriptions (get-in payload
+                                [:data :subscriptions])]
+      (assoc db :subscribed subscriptions
+                ::current-subscription
+                (-> subscriptions first :id)))))
 
 (rf/reg-event-db
   :char-subs-result
@@ -72,8 +84,3 @@
   :set-time-result
   (fn [db [_ time]]
     (assoc db :time time)))
-
-(rf/reg-event-db
-  :switch-subs
-  (fn [db [_ id]]
-    (assoc db :sub-set id)))

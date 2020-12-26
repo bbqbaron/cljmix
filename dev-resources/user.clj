@@ -1,3 +1,6 @@
+(ns user
+  (:require [clojure.java.io :as io])
+  (:import (jetbrains.exodus.entitystore PersistentEntityStore PersistentEntityStores StoreTransactionalExecutable)))
 (require
   '[com.walmartlabs.lacinia :as lacinia]
   '[clojure.tools.namespace.repl :as r]
@@ -68,6 +71,44 @@
 (comment
   (r/set-refresh-dirs)
   (r/refresh)
-  (reset)
   (start)
+  (reset)
+  (stop)
   (-main))
+
+#_(let [es (PersistentEntityStores/newInstance "./.loltest3")]
+  (let [tc (:tag-cache @@db/db)
+        tc2
+        ((fn go [x]
+           (reduce
+             (fn [acc [k v]]
+               (if (:body v)
+                 (assoc acc k v)
+                 (into acc
+                       (for [[k2 v2] (go v)]
+                         [(str k k2) v2]))))
+             {} x))
+         tc)]
+    (try
+      #_(.getEntity es (str [pk qk]))
+      #_(.executeInTransaction es
+                               (reify StoreTransactionalExecutable
+                                 (execute [_ txn]
+                                   (println (read-string
+                                              (.getBlobString
+                                                (first (vec (.find txn "server-cache" "id" (str [pk qk]))))
+                                                "response"))))))
+      (.executeInTransaction es
+                             (reify StoreTransactionalExecutable
+                               (execute [_ txn]
+                                 (doseq [[k v] tc2]
+                                   (let [e (.newEntity txn "tag-cache")]
+                                     (.setProperty e "id" k)
+                                     (.setBlobString e "result" (pr-str v)))))))
+      (finally
+        (.close es)))))
+
+
+
+
+(str \1 "hi")
