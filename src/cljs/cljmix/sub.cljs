@@ -37,7 +37,11 @@
 (rf/reg-sub
   :subs
   (fn [db _]
-    (:subscribed db)))
+    (merge-with
+      (fn [s toggled?]
+        (assoc s :toggled? toggled?))
+      (:subscribed db)
+      (:sub-switches db))))
 
 (rf/reg-sub
   :char-subs

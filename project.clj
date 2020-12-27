@@ -24,9 +24,14 @@
   {:dev
    {:plugins
     [[com.jakemccrary/lein-test-refresh "0.23.0"]]
+    :resource-paths ["target" "resources"]
+    :aliases {"fig" ["trampoline" "run" "-m" "figwheel.main"]
+              "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]}
     :dependencies
     [[org.clojure/tools.namespace "0.2.11"]
-     [com.stuartsierra/component.repl "0.2.0"]]}}
+     [com.stuartsierra/component.repl "0.2.0"]
+     [com.bhauman/figwheel-main "0.2.12"]
+     [com.bhauman/rebel-readline-cljs "0.1.4"]]}}
   :main cljmix.main
   :cljsbuild
   {

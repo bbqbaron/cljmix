@@ -100,11 +100,14 @@
                         :Creator))))
                 ids))
             v)
+          :name (:name v)
+          :time (:time v)
           :id k}))
      (:subscribed db-state))))
 
 (defn subscribe
   [db marvel-req _ args _]
+  (println "sub wtf" args )
   (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:subId :entityType :entityId])])]
     (get-subscriptions new-db marvel-req)))
 
@@ -140,6 +143,8 @@
     :Subscription
     {:fields
      {:id {:type 'Int}
+      :name {:type 'String}
+      :time {:type 'Float}
       :entities
       {:type '(list (non-null EntityData))}}}}
    :queries
@@ -189,14 +194,12 @@
                :entityId   {:type '(non-null Int)}}
      :resolve :mutation/unsubscribe
      :type    '(list Subscription)}
-    :subscribeCharacter
-    {:args    {:charId {:type '(non-null Int)}}
-     :resolve :mutation/subscribeCharacter
-     :type    '(non-null (list (non-null CharacterDataWrapper)))}
-    :unsubscribeCharacter
-    {:args    {:charId {:type '(non-null Int)}}
-     :resolve :mutation/unsubscribeCharacter
-     :type    '(non-null (list (non-null CharacterDataWrapper)))}
+    :updateSubscription
+    {:args {:id {:type 'Int}
+            :name {:type 'String}
+            :time {:type 'Float}}
+     :resolve :mutation/update-sub
+     :type 'Boolean}
     :setTime
     {:args    {:time {:type 'Float}}
      :resolve :mutation/setTime
@@ -251,9 +254,9 @@
              :mutation/markRead             (update-history db-provider)
              :mutation/subscribe            (partial subscribe (:db db-provider) marvel-req)
              :mutation/unsubscribe          (partial unsubscribe (:db db-provider) marvel-req)
-             :mutation/subscribeCharacter   (partial subscribe-character (:db db-provider) marvel-req)
-             :mutation/unsubscribeCharacter (partial unsubscribe-character (:db db-provider) marvel-req)
              :queries/getFeed               get-feed
+             :mutation/update-sub
+             (constantly false)
              :queries/subscribedCharacters  (partial get-subscribed-characters
                                                      (:db db-provider)
                                                      marvel-req)

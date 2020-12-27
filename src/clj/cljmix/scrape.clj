@@ -4,7 +4,8 @@
             [clj-http.client :as http]
             [cheshire.core :as json]
             [cljmix.db :as db]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [com.stuartsierra.component :as component]))
 
 (defn gitem [file-offset page page-limit url filename]
   (loop [current-page page
@@ -48,6 +49,19 @@
           200
           (recur (inc current-page) ds)
           nil)))))
+
+(defrecord Scraper [marvel-provider]
+  component/Lifecycle
+  (start [this]
+    (assoc this :marvel marvel-provider))
+  (stop [this]
+    this))
+
+(defn new-scraper []
+  {:scraper (component/using
+              (map->Scraper {})
+              [:marvel-provider]
+              )})
 
 #_
 (let [data (mapcat

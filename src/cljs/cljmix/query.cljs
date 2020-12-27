@@ -18,6 +18,20 @@
                     :venia/operation {:operation/type :mutation
                                       :operation/name "SetTime"}}))
 
+(def update-sub-mutation
+  (v/graphql-query {:venia/queries [[:updateSubscription
+                                     {:id :$id
+                                      :name :$name
+                                      :time :$time}]]
+                    :venia/variables [{:variable/name "time"
+                                       :variable/type :Float!}
+                                      {:variable/name "id"
+                                       :variable/type :Int!}
+                                      {:variable/name "name"
+                                       :variable/type :String!}]
+                    :venia/operation {:operation/type :mutation
+                                      :operation/name "UpdateSub"}}))
+
 (def character-fragment [[:data
                           [:total
                            :count
@@ -67,6 +81,8 @@
 (def get-subs
   (v/graphql-query {:venia/queries [[:subscriptions
                                      [:id
+                                      :name
+                                      :time
                                       [:entities
                                        [(inline-fragment
                                           :Character
@@ -140,22 +156,6 @@
                     :venia/operation {:operation/type :mutation
                                       :operation/name "Subscribe"}}))
 
-(def unsubscribe-character-mutation
-  (v/graphql-query {:venia/queries [[:unsubscribeCharacter {:charId :$charId}
-                                     character-fragment]]
-                    :venia/variables [{:variable/name "charId"
-                                       :variable/type :Int!}]
-                    :venia/operation {:operation/type :mutation
-                                      :operation/name "UnsubscribeFromCharacter"}}))
-
-(def subscribe-character-mutation
-  (v/graphql-query {:venia/queries [[:subscribeCharacter {:charId :$charId}
-                                     character-fragment]]
-                    :venia/variables [{:variable/name "charId"
-                                       :variable/type :Int!}]
-                    :venia/operation {:operation/type :mutation
-                                      :operation/name "SubscribeToCharacter"}}))
-
 (def feed
   (v/graphql-query {:venia/operation {:operation/name "GetFeed"
                                       :operation/type :query}
@@ -177,16 +177,6 @@
                                         [:dates [:type :date]]
                                         [:series [:name :resourceURI]]
                                         [:thumbnail [:extension :path]]]]]]]}))
-
-
-
-(def char-query
-  (v/graphql-query {:venia/operation {:operation/name "GetCharacter"
-                                      :operation/type :query}
-                    :venia/queries [[:getCharacterIndividual
-                                     {:charId :$charId}
-                                     character-fragment]]
-                    :venia/variables [{:variable/name "charId" :variable/type :String!}]}))
 
 (def char-search-query
   (v/graphql-query {:venia/operation {:operation/name "SearchCharacter"
@@ -224,6 +214,12 @@
                                       {:variable/name "offset"
                                        :variable/type :Int}]}))
 
+(defn update-sub
+  [d]
+  [::gql/mutate update-sub-mutation
+   d
+   [:update-sub-result d]])
+
 (defn set-time
   [time]
   [::gql/mutate set-time-mutation
@@ -236,42 +232,41 @@
    {}
    [:get-time-result]])
 
-(defn get-chars
-  [ids]
-  (map
-    #([::gql/query
-       char-query
-       {:charId %}
-       [:char-result %]])
-    ids))
-
 (defn search-series
-  [series-name]
-  [::gql/query
-   series-search-query
-   {:seriesName series-name}
-   [:series-search-result]])
+  ([series-name opts]
+   [::gql/query
+    series-search-query
+    (merge
+      {:seriesName series-name}
+      opts)
+    [:series-search-result]]))
 
 (defn search-creator
-  [nm]
-  [::gql/query
-   creator-search-query
-   {:creatorName nm}
-   [:creator-search-result]])
+  ([nm opts]
+   [::gql/query
+    creator-search-query
+    (merge
+      {:creatorName nm}
+      opts)
+    [:creator-search-result]]))
 
 (defn search-char
-  [char-name]
-  [::gql/query
-   char-search-query
-   {:charName char-name}
-   [:char-search-result]])
+  ([char-name]
+   (search-char char-name nil))
+  ([char-name opts]
+   [::gql/query
+    char-search-query
+    (merge
+      {:charName char-name}
+      opts)
+    [:char-search-result]]))
 
 (defn search
-  [etype text]
-  (case etype
-    :character (search-char text)
-    :series (search-series text)
-    :creator (search-creator text)))
+  ([etype text opts]
+   (case etype
+     :character (search-char text opts)
+     :series (search-series text opts)
+     :creator (search-creator text opts))))
 
 (defn get-feed
   ([offset]
@@ -299,16 +294,5 @@
     :entityId ent-id}
    [:unsubscribed]])
 
-(defn subscribe-character [char-id]
-  [::gql/mutate
-   subscribe-character-mutation
-   {:charId char-id}
-   [:subscribed-character]])
-
-(defn unsubscribe-character [char-id]
-  [::gql/mutate
-   unsubscribe-character-mutation
-   {:charId char-id}
-   [:unsubscribed-character]])
 
 

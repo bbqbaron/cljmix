@@ -8,7 +8,9 @@
   (fn [{:keys [db]}
        [_ id]]
     {:dispatch
-     (cljmix.query/get-feed nil)
+     (cljmix.query/get-feed
+       (::db/current-subscription db)
+       nil)
      :db
      (update db :feed
              (partial filter #(not= (:digitalId %) id)))}))

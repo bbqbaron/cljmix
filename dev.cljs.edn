@@ -1,0 +1,3 @@
+{:main cljmix.core
+ :connect-url
+ "ws://localhost:9500/figwheel-connect"}

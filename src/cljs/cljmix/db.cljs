@@ -13,19 +13,17 @@
   :char-search-result
   (fn [db [_ payload]]
     (let [new-chars (->> payload
-                         (#(get-in % [:data :getCharacterCollection :data :results]))
-                         (map (fn [char] [(:id char) char]))
-                         (into {}))]
-      (assoc db :char-search-result
+                         :data
+                         :getCharacterCollection
+                         :data)]
+      (assoc-in db [:search-results :character]
              new-chars))))
 
 (rf/reg-event-db
   :creator-search-result
   (fn [db [_ payload]]
     (let [xs (->> payload
-                         (#(get-in % [:data :getCreatorCollection :data :results]))
-                         (map (fn [char] [(:id char) char]))
-                         (into {}))]
+                  :data :getCreatorCollection :data)]
       (assoc-in db [:search-results :creator]
                 xs))))
 
@@ -33,9 +31,7 @@
   :series-search-result
   (fn [db [_ payload]]
     (let [xs (->> payload
-                         (#(get-in % [:data :getSeriesCollection :data :results]))
-                         (map (juxt :id identity))
-                         (into {}))]
+                  :data :getSeriesCollection :data)]
       (assoc-in db [:search-results :series] xs))))
 
 (rf/reg-event-db
@@ -84,3 +80,10 @@
   :set-time-result
   (fn [db [_ time]]
     (assoc db :time time)))
+
+(rf/reg-event-db
+  ::toggle-sub
+  (fn [db [_ id]]
+    (update-in db
+              [:sub-switches id]
+               not)))

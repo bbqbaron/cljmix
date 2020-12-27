@@ -1,4 +1,4 @@
-(ns cljmix.core
+(ns ^:figwheel-hooks cljmix.core
   (:require [re-frame.core :as rf]
             [reagent.core :as ra]
             [re-graph.core :as gql]
@@ -13,7 +13,7 @@
 
 (rf/dispatch [::gql/init {:ws-url nil}])
 
-(rf/dispatch (query/get-feed 0))
+(rf/dispatch (query/get-feed 0 nil))
 (rf/dispatch [::gql/query
               query/get-char-subs
               {}
@@ -33,12 +33,15 @@
      [vw/header]
      [:main
      (case page
-       :page/subs [vw/subs]
+       :page/subs [vw/subs-view]
        :page/queue [vw/queue])]]))
+
+(defn ^:after-load re-render []
+  (ra/render [ui]
+             (js/document.getElementById "app")))
 
 (defn ^:export run
   []
   (rf/dispatch-sync [:initialize])
-  (ra/render [ui]
-             (js/document.getElementById "app")))
+  (re-render))
 

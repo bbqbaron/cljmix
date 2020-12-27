@@ -1,5 +1,8 @@
 (ns user
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [com.stuartsierra.component :as component]
+            [clojure.set :as set]
+            [cljmix.marvel :as marvel])
   (:import (jetbrains.exodus.entitystore PersistentEntityStore PersistentEntityStores StoreTransactionalExecutable)))
 (require
   '[com.walmartlabs.lacinia :as lacinia]
@@ -11,7 +14,7 @@
   '[clojure.java.browse :refer [browse-url]]
   '[clojure.walk :as walk]
   '[prevayler :as pv]
-  '[com.stuartsierra.component.repl :refer [start stop reset set-init]])
+  '[com.stuartsierra.component.repl :as crepl :refer [start stop reset set-init]])
 (import '(clojure.lang IPersistentMap))
 
 (defn reduce-to
@@ -68,7 +71,68 @@
       (lacinia/execute query-string nil nil)
       simplify))
 
+#_(defonce system (new-system nil))
+
+
 (comment
+  (defonce file-data
+           (mapcat
+             (comp :results :data)
+             (map #(read-string (slurp (str "comics" % ".edn")))
+                  (range 484))))
+
+  (def need-supplements
+    (->> file-data
+         (filterv (comp (fn [{:keys [returned available]}]
+                          (> available returned)) :creators))))
+
+  (first need-supplements))
+
+
+#_
+(def creator->comics
+  (reduce
+   (fn [acc {:keys [id]
+             {:keys [available items returned]} :creators}]
+     (let [remote-ids (when (> available returned)
+                        (->>
+                          (marvel/marvel-req
+                            nil
+                            (:xodus (:xodus-cache system))
+                            (str
+                              "/v1/public/comics/" id "/creators"))
+                          :data :results
+                          (map :id)))
+           local-ids
+           (for [c items]
+             (read-string
+               (second (re-find #"creators\/(\d+)" (:resourceURI c)))))]
+       (apply
+         merge-with set/union
+         acc
+         (for [creator-id (concat local-ids remote-ids)]
+           {creator-id #{id}}))))
+   {}
+   file-data))
+
+#_
+(spit "creator->comics.edn" (pr-str creator->comics))
+
+#_(defn repl-reset
+  "Stops the system, reloads modified source files, and restarts the
+  system."
+  []
+  (alter-var-root #'system component/stop)
+  (let [ret (r/refresh :after `start)]
+    (if (instance? Throwable ret)
+      (throw ret)  ; let the REPL's exception handling take over
+      ret)))
+
+(keys crepl/system)
+
+(comment
+  (alter-var-root #'system component/start)
+  (alter-var-root #'system component/stop)
   (r/set-refresh-dirs)
   (r/refresh)
   (start)
@@ -107,8 +171,3 @@
                                      (.setBlobString e "result" (pr-str v)))))))
       (finally
         (.close es)))))
-
-
-
-
-(str \1 "hi")
