@@ -137,7 +137,7 @@
               (when (= t :character)
                 [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"])
               (for [s subs]
-                [:button {:on-click #(rf/dispatch (query/subscribe 0 t id))} (str "Subscribe to " (:id s) "(beta)")])
+                [:button {:on-click #(rf/dispatch (query/subscribe (:id s) t id))} (str "Subscribe to " (:id s) "(beta)")])
               (let [nid (inc (apply max (map :id subs)))]
                 [:button {:on-click #(rf/dispatch (query/subscribe nid t id))} (str "Subscribe to " nid "(beta)")])]))
                    (vals es)))
@@ -153,7 +153,7 @@
           [:p char-name]
           [:button {:on-click #(rf/dispatch (query/subscribe-character id))} "Subscribe"]
           (for [s subs]
-            [:button {:on-click #(rf/dispatch (query/subscribe 0 :character id))} (str "Subscribe to " (:id s) "(beta)")])
+            [:button {:on-click #(rf/dispatch (query/subscribe (:id s) :character id))} (str "Subscribe to " (:id s) "(beta)")])
           (let [nid (inc (apply max (map :id subs)))]
             [:button {:on-click #(rf/dispatch (query/subscribe nid :character id))} (str "Subscribe to " nid "(beta)")])])
        (vals chars))]))
