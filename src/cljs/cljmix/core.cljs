@@ -30,10 +30,11 @@
   []
   (let [page @(rf/subscribe [:page])]
     [:div
-     [vw/pages]
+     [vw/header]
+     [:main
      (case page
        :page/subs [vw/subs]
-       :page/queue [vw/queue])]))
+       :page/queue [vw/queue])]]))
 
 (defn ^:export run
   []
