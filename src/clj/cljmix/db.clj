@@ -79,7 +79,8 @@
   (stop [{:keys [xodus] :as this}]
     (println (keys this))
     (when ^EntityStore xodus
-      (.close xodus))))
+      (.close xodus))
+    this))
 
 (defn new-db []
   {:db-provider (component/using (map->Db {})

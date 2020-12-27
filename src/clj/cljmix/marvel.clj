@@ -195,11 +195,14 @@
            (map #(read-string (slurp (str "comics" % ".edn")))
                 (range 484))))
 
+(defonce creator->comics
+         (read-string
+           (slurp "creator->comics.edn")))
+
 (defn get-feed
   ([db]
    (get-feed db nil nil nil))
   ([db _ {:keys [subscriptionId] :as args} _]
-   (println "wtf" args)
    {:results (let [subscriptions (cond-> (:subscribed @db)
                                          subscriptionId
                                          (select-keys [subscriptionId]))
@@ -209,13 +212,17 @@
                    series (set (mapcat :series (vals subscriptions)))
                    ;; TODO use these; need to fetch another index :/
                    creators (set (mapcat :creator (vals subscriptions)))
+                   creator-comics
+                   (set (mapcat creator->comics creators))
                    already-read (set (:read @db))
                    time (:time @db)]
                (->> file-data
                     (filter
                       (fn [{{:keys [items]} :characters
-                            issue-series :series}]
+                            issue-series :series
+                            id :id}]
                         (or
+                          (creator-comics id)
                           ((comp
                              series
                              read-string
