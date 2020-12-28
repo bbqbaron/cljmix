@@ -14,11 +14,14 @@
                                        (filter some?
                                                (set
                                                  (conj old event-val)))))
-                  :name-sub
-                  (let [{:keys [subId]
-                         sub-name :name} event-val]
-                    (assoc-in state [:subscribed subId :name]
-                              sub-name))
+                  :unsubscribe-characters
+                  (assoc  state
+                    :subscribed-characters
+                    #{})
+                  :update-sub
+                  (update-in state [:subscribed (:id event-val)]
+                             #(merge % (dissoc event-val
+                                               :id)))
                   :subscribe
                   (let [{:keys [subId entityId entityType]} event-val]
                     (update-in state [:subscribed subId entityType]

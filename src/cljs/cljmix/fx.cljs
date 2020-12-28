@@ -57,3 +57,17 @@
      (assoc db ::db/current-subscription id)
      :dispatch
      (cljmix.query/get-feed id nil)}))
+
+(rf/reg-event-fx
+  :update-sub-result
+  (fn [{db :db} [_ {id :id :as sub}]]
+    (let [sub1 (get-in db [:subscribed id])
+          refetch? (not= (:time sub1) (:time sub))]
+      (cond->
+        {:db
+         (assoc-in db [:subscribed id] (merge sub1 (dissoc sub :id)))}
+        refetch?
+        (assoc
+          :dispatch
+          (when
+            (cljmix.query/get-feed id nil)))))))

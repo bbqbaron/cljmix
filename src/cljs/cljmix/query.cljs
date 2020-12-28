@@ -22,7 +22,10 @@
   (v/graphql-query {:venia/queries [[:updateSubscription
                                      {:id :$id
                                       :name :$name
-                                      :time :$time}]]
+                                      :time :$time}
+                                     [:id
+                                      :name
+                                      :time]]]
                     :venia/variables [{:variable/name "time"
                                        :variable/type :Float!}
                                       {:variable/name "id"

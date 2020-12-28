@@ -99,7 +99,8 @@
                         :creator
                         :Creator))))
                 ids))
-            v)
+            (select-keys v
+                         (keys entity-type->url-seg)))
           :name (:name v)
           :time (:time v)
           :id k}))
@@ -199,7 +200,7 @@
             :name {:type 'String}
             :time {:type 'Float}}
      :resolve :mutation/update-sub
-     :type 'Boolean}
+     :type :Subscription}
     :setTime
     {:args    {:time {:type 'Float}}
      :resolve :mutation/setTime
@@ -232,6 +233,14 @@
     (prevayler/handle! db [:set-time time])
     time))
 
+(defn- update-sub
+  [db _ args _]
+  (prevayler/handle!
+    db
+    [:update-sub
+     args])
+  args)
+
 (defn raw-schema
   [db-provider {marvel-req :marvel get-feed :get-feed}]
   (let [schema-edn (get-schema-edn)
@@ -256,7 +265,7 @@
              :mutation/unsubscribe          (partial unsubscribe (:db db-provider) marvel-req)
              :queries/getFeed               get-feed
              :mutation/update-sub
-             (constantly false)
+             (partial update-sub (:db db-provider))
              :queries/subscribedCharacters  (partial get-subscribed-characters
                                                      (:db db-provider)
                                                      marvel-req)

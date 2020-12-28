@@ -5,11 +5,12 @@
             [cheshire.core :as json]
             [clj-http.client :as http]
             [prevayler :as prv]
-            [cljmix.db :as db])
+            [cljmix.db :as db]
+            [clojure.string :as str])
   (:import (java.security MessageDigest)
            (java.text SimpleDateFormat)
            (jetbrains.exodus.entitystore StoreTransactionalExecutable StoreTransactionalComputable)
-           (java.util ArrayList)))
+           (java.util ArrayList Date)))
 
 (defn- get-keys
   []
@@ -206,16 +207,21 @@
    {:results (let [subscriptions (cond-> (:subscribed @db)
                                          subscriptionId
                                          (select-keys [subscriptionId]))
-                   characters (set (concat (when (= subscriptionId 0)
-                                             (:subscribed-characters @db))
-                                           (mapcat :character (vals subscriptions))))
+                   characters (set (mapcat :character (vals subscriptions)))
                    series (set (mapcat :series (vals subscriptions)))
                    ;; TODO use these; need to fetch another index :/
                    creators (set (mapcat :creator (vals subscriptions)))
                    creator-comics
                    (set (mapcat creator->comics creators))
                    already-read (set (:read @db))
-                   time (:time @db)]
+                   time
+                   (if subscriptionId
+                     (or
+                       (-> subscriptions
+                           (get subscriptionId)
+                           :time)
+                       (:time @db))
+                     (:time @db))]
                (->> file-data
                     (filter
                       (fn [{{:keys [items]} :characters
@@ -244,12 +250,14 @@
                     (remove
                       (fn [c]
                         (when-let [onsale-date
-                                   (->> c :dates
-                                        (filter #(= (:type %) "onsaleDate"))
-                                        first
-                                        :date)]
+                                   (when-let [v (->> c :dates
+                                                     (filter #(= (:type %) "onsaleDate"))
+                                                     first
+                                                     :date)]
+                                     (when (not (str/blank? v))
+                                       v))]
                           (.before (.parse date-format onsale-date)
-                                   (java.util.Date. ^Long time)))))
+                                   (Date. ^Long time)))))
                     (sort-by
                       (fn [c]
                         (when-let [onsale-date

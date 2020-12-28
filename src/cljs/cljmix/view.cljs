@@ -5,31 +5,8 @@
             [cljmix.db :as db]
             cljmix.fx
             [cljmix.sub :as sub]
-            [reagent.core :as r]))
-
-(defn show-time []
-  (let [state (r/atom nil)]
-    (fn []
-      (let [time @(rf/subscribe [:time])]
-        [:div
-         [:p "Comics after: " (.toLocaleDateString (js/Date. time) "en-US")]
-         [:form.pure-form {:on-submit (fn [e]
-                                        (.preventDefault e)
-                                        (let [val @state]
-                                          (rf/dispatch (query/set-time
-                                                         (+
-                                                           (.valueOf (js/Date. val))
-                                                           (*
-                                                             ; TODO just get a date lib; i think my browser isn't even right about DST
-                                                             (+ 60 (.getTimezoneOffset (js/Date.))
-                                                                60 1000)))))))}
-          [:input {:type "date"
-                   :on-change
-                   (fn [e]
-                     (let [val (.. e -target -value)]
-                       (reset! state val)))
-                   :value @state}]
-          [:button.pure-button {:type "submit"} "Submit"]]]))))
+            [reagent.core :as r]
+            [clojure.string :as str]))
 
 (def button-link-style
   {:font "bold 11px Arial"
@@ -76,49 +53,64 @@
                      (query/unsubscribe
                        sub-id
                        e-type
-                       (:id s)))}
+                       (:id s)))
+        :type :button}
        "X"]]]))
 
+(defn- sub->display [sset]
+  (update
+   sset
+   :time
+   (comp
+     first
+     #(str/split % #"T")
+     #(.toISOString
+        (js/Date. %)))))
+
 (defn sub-set [sset]
-  (let [st (r/atom sset)]
+  (let [st (r/atom (sub->display sset))]
     (fn [sset]
-      [:div
-       [:p (:name sset)]
-       [:input {:type "text" :placeholder "subname" :value (:name @st)
-                :on-change #(swap! st assoc :name (-> % .-target .-value))}]
-       [:p (:time sset)]
-       [:input {:type "date"
-                :on-change
-                (fn [e]
-                  (let [val (.. e -target -value)]
-                    (swap! st assoc :time val)))
-                :value (:time @st)}]
-       [:button.pure-button
-        {:on-click #(rf/dispatch (query/update-sub
-                                   (update
-                                     @st
-                                     :time
-                                     (fn [d] (.valueOf (js/Date. d))))))}
-        "Update"]
-       [:button.pure-button
-        {:on-click #(rf/dispatch [::db/toggle-sub (:id sset)])}
-        (if (:toggled? sset)
-          "v" ">")]
-       (if (:toggled? sset)
-         [:div
-          (:id sset)
-          [grid
-           (doall
-             (map
-              (partial show-sub (:id sset))
-              (sort-by sub-name
-                       (:entities sset))))]]
-         [:div])])))
+      (let [dirty (not= (sub->display sset) @st)]
+        [:form.pure-form
+         {:style {:border "1px solid gray"}}
+         [:input.pure-input-1-2
+          {:type "text" :placeholder "subname" :value (:name @st)
+           :on-change #(swap! st assoc :name (-> % .-target .-value))}]
+         [:input.pure-input-1-2
+          {:type "date"
+           :on-change
+           (fn [e]
+             (let [val (.. e -target -value)]
+               (swap! st assoc :time val)))
+           :value (:time @st)}]
+         [:button.pure-button
+          {:disabled (not dirty)
+           :on-click #(rf/dispatch (query/update-sub
+                                     (update
+                                       @st
+                                       :time
+                                       (fn [d] (.valueOf (js/Date. d))))))
+           :type :button}
+          "Save"]
+         [:button.pure-button
+          {:on-click #(rf/dispatch [::db/toggle-sub (:id sset)])
+           :type :button}
+          (if (:toggled? sset)
+            "v" ">")]
+         (if (:toggled? sset)
+           [:div
+            (:id sset)
+            [grid
+             (doall
+               (map
+                 (partial show-sub (:id sset))
+                 (sort-by sub-name
+                          (:entities sset))))]]
+           [:div])]))))
 
 (defn show-subs []
   (let [subscribed @(rf/subscribe [:subs])]
     [:div
-     [show-time]
      [:p "Subscribed to: "]
      (for [s subscribed]
        ^{:key (:id s)}

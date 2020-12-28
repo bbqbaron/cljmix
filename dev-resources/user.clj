@@ -128,8 +128,6 @@
       (throw ret)  ; let the REPL's exception handling take over
       ret)))
 
-(keys crepl/system)
-
 (comment
   (alter-var-root #'system component/start)
   (alter-var-root #'system component/stop)
