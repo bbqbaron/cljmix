@@ -71,3 +71,11 @@
           :dispatch
           (when
             (cljmix.query/get-feed id nil)))))))
+
+(rf/reg-event-fx
+  :skipped
+  (fn [{:keys [db]}
+       [_ id]]
+    {:db db
+     :dispatch
+     (cljmix.query/get-feed id nil)}))

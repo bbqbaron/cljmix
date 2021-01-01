@@ -39,19 +39,19 @@
 (defn resolver-map
   [marvel-req]
   {:queries/getComicsCollection
-                  (edge-resolver marvel-req ["comics"])
+   (edge-resolver marvel-req ["comics"])
    :queries/getCharacterCollection
-                  (edge-resolver marvel-req ["characters"])
+   (edge-resolver marvel-req ["characters"])
    :queries/getCreatorCollection
-                  (edge-resolver marvel-req ["creators"])
+   (edge-resolver marvel-req ["creators"])
    :queries/getSeriesCollection
-                  (edge-resolver marvel-req ["series"])
+   (edge-resolver marvel-req ["series"])
    :queries/getEventsCollection
-                  (edge-resolver marvel-req ["events"])
+   (edge-resolver marvel-req ["events"])
    :queries/getStoryCollection
-                  (edge-resolver marvel-req ["stories"])
+   (edge-resolver marvel-req ["stories"])
    :queries/getCharacterIndividual
-                  (edge-resolver marvel-req ["characters" [:args :characterId]])
+   (edge-resolver marvel-req ["characters" [:args :characterId]])
    :queries/getEntityTypes (constantly entity-types)
    :edge-resolver (partial edge-resolver marvel-req)})
 
@@ -74,41 +74,41 @@
 
 (def entity-type->url-seg
   {:character "characters"
-   :creator   "creators"
+   :creator "creators"
    :series "series"})
 
 (defn get-subscriptions [db-state marvel-req]
-   (filter some?
-           (map
-     (fn [[k v]]
-       (when k
-         {:entities
-          (mapcat
-            (fn [[et ids]]
-              (map
-                (fn [id]
-                  (let [ent-d (->> (marvel-req (str "v1/public/" (entity-type->url-seg et) "/" id))
-                                   :data :results first)]
-                    (schema/tag-with-type
-                      ent-d
-                      (case et
-                        :series
-                        :Series
-                        :character
-                        :Character
-                        :creator
-                        :Creator))))
-                ids))
-            (select-keys v
-                         (keys entity-type->url-seg)))
-          :name (:name v)
-          :time (:time v)
-          :id k}))
-     (:subscribed db-state))))
+  (filter some?
+          (map
+            (fn [[k v]]
+              (when k
+                {:entities
+                 (mapcat
+                   (fn [[et ids]]
+                     (map
+                       (fn [id]
+                         (let [ent-d (->> (marvel-req (str "v1/public/" (entity-type->url-seg et) "/" id))
+                                          :data :results first)]
+                           (schema/tag-with-type
+                             ent-d
+                             (case et
+                               :series
+                               :Series
+                               :character
+                               :Character
+                               :creator
+                               :Creator))))
+                       ids))
+                   (select-keys v
+                                (keys entity-type->url-seg)))
+                 :name (:name v)
+                 :time (:time v)
+                 :id k}))
+            (:subscribed db-state))))
 
 (defn subscribe
   [db marvel-req _ args _]
-  (println "sub wtf" args )
+  (println "sub wtf" args)
   (let [[new-db] (prevayler/handle! db [:subscribe (select-keys args [:subId :entityType :entityId])])]
     (get-subscriptions new-db marvel-req)))
 
@@ -150,21 +150,21 @@
       {:type '(list (non-null EntityData))}}}}
    :queries
    {:readHistory
-    {:type    '(non-null (list (non-null Int)))
+    {:type '(non-null (list (non-null Int)))
      :resolve :queries/readHistory}
     :feed
     ; TODO ComicDataContainer probably promises too much; we can't really count results
-    {:type    '(non-null ComicDataContainer)
+    {:type '(non-null ComicDataContainer)
      :resolve :queries/getFeed
      :args
-              {:limit  {:type 'Int}
-               :offset {:type 'Int}
-               :subscriptionId {:type 'Int}}}
+     {:limit {:type 'Int}
+      :offset {:type 'Int}
+      :subscriptionId {:type 'Int}}}
     :subscribedCharacters
-    {:type    '(non-null (list (non-null CharacterDataWrapper)))
+    {:type '(non-null (list (non-null CharacterDataWrapper)))
      :resolve :queries/subscribedCharacters}
     :getTime
-    {:type    'Float
+    {:type 'Float
      :resolve :queries/getTime}
     :entityTypes
     {:type '(list entityType)
@@ -180,21 +180,26 @@
     {:values entity-types}}
    :mutations
    {:markRead
-    {:args    {:digitalId {:type '(non-null Int)}}
-     :type    '(non-null (list (non-null Int)))
+    {:args {:digitalId {:type '(non-null Int)}}
+     :type '(non-null (list (non-null Int)))
      :resolve :mutation/markRead}
+    :skip
+    {:args {:comicId {:type '(non-null Int)}
+            :subId {:type '(non-null Int)}}
+     :type '(non-null Boolean)
+     :resolve :mutation/skip}
     :subscribe
-    {:args    {:subId      {:type '(non-null Int)}
-               :entityType {:type '(non-null :entityType)}
-               :entityId   {:type '(non-null Int)}}
+    {:args {:subId {:type '(non-null Int)}
+            :entityType {:type '(non-null :entityType)}
+            :entityId {:type '(non-null Int)}}
      :resolve :mutation/subscribe
-     :type    '(list Subscription)}
+     :type '(list Subscription)}
     :unsubscribe
-    {:args    {:subId      {:type '(non-null Int)}
-               :entityType {:type '(non-null :entityType)}
-               :entityId   {:type '(non-null Int)}}
+    {:args {:subId {:type '(non-null Int)}
+            :entityType {:type '(non-null :entityType)}
+            :entityId {:type '(non-null Int)}}
      :resolve :mutation/unsubscribe
-     :type    '(list Subscription)}
+     :type '(list Subscription)}
     :updateSubscription
     {:args {:id {:type 'Int}
             :name {:type 'String}
@@ -202,9 +207,9 @@
      :resolve :mutation/update-sub
      :type :Subscription}
     :setTime
-    {:args    {:time {:type 'Float}}
+    {:args {:time {:type 'Float}}
      :resolve :mutation/setTime
-     :type    'Float}}})
+     :type 'Float}}})
 
 (defn get-history [db]
   (fn [_ _ _]
@@ -241,6 +246,14 @@
      args])
   args)
 
+(defn- skip
+  [db _ args _]
+  (prevayler/handle!
+    db
+    [:skip
+     args])
+  true)
+
 (defn raw-schema
   [db-provider {marvel-req :marvel get-feed :get-feed}]
   (let [schema-edn (get-schema-edn)
@@ -259,23 +272,24 @@
           (merge
             (resolver-map marvel-req)
             placeholders
-            {:queries/readHistory           (get-history db-provider)
-             :mutation/markRead             (update-history db-provider)
-             :mutation/subscribe            (partial subscribe (:db db-provider) marvel-req)
-             :mutation/unsubscribe          (partial unsubscribe (:db db-provider) marvel-req)
-             :queries/getFeed               get-feed
+            {:queries/readHistory (get-history db-provider)
+             :mutation/markRead (update-history db-provider)
+             :mutation/skip (partial skip (:db db-provider))
+             :mutation/subscribe (partial subscribe (:db db-provider) marvel-req)
+             :mutation/unsubscribe (partial unsubscribe (:db db-provider) marvel-req)
+             :queries/getFeed get-feed
              :mutation/update-sub
              (partial update-sub (:db db-provider))
-             :queries/subscribedCharacters  (partial get-subscribed-characters
-                                                     (:db db-provider)
-                                                     marvel-req)
+             :queries/subscribedCharacters (partial get-subscribed-characters
+                                                    (:db db-provider)
+                                                    marvel-req)
              :queries/subscriptions
              (fn [& _]
                (get-subscriptions
-                @(:db db-provider)
-                marvel-req))
-             :queries/getTime               (partial get-time (:db db-provider))
-             :mutation/setTime              (partial set-time (:db db-provider))})))))
+                 @(:db db-provider)
+                 marvel-req))
+             :queries/getTime (partial get-time (:db db-provider))
+             :mutation/setTime (partial set-time (:db db-provider))})))))
 
 (defrecord SchemaProvider [db-provider marvel-provider schema]
 

@@ -11,30 +11,15 @@
 
 (enable-console-print!)
 
-(rf/dispatch [::gql/init {:ws-url nil}])
-
-(rf/dispatch (query/get-feed 0 nil))
-(rf/dispatch [::gql/query
-              query/get-char-subs
-              {}
-              [:char-subs-result]])
-
-(rf/dispatch [::gql/query
-              query/get-subs
-              {}
-              [:subs-result]])
-
-(rf/dispatch (query/get-time))
-
 (defn ui
   []
   (let [page @(rf/subscribe [:page])]
     [:div
      [vw/header]
      [:main
-     (case page
-       :page/subs [vw/subs-view]
-       :page/queue [vw/queue])]]))
+      (case page
+        :page/subs [vw/subs-view]
+        :page/queue [vw/queue])]]))
 
 (defn ^:after-load re-render []
   (ra/render [ui]
@@ -43,5 +28,16 @@
 (defn ^:export run
   []
   (rf/dispatch-sync [:initialize])
+  (rf/dispatch [::gql/init {:ws-url nil}])
+  (rf/dispatch (query/get-feed 0 nil))
+  (rf/dispatch [::gql/query
+                query/get-char-subs
+                {}
+                [:char-subs-result]])
+  (rf/dispatch [::gql/query
+                query/get-subs
+                {}
+                [:subs-result]])
+  (rf/dispatch (query/get-time))
   (re-render))
 

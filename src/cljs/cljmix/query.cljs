@@ -159,6 +159,21 @@
                     :venia/operation {:operation/type :mutation
                                       :operation/name "Subscribe"}}))
 
+(def skip-mutation
+  (v/graphql-query
+    {:venia/queries
+     [[:skip
+       {:subId :$subId
+        :comicId :$comicId}]]
+     :venia/variables
+     [{:variable/name "comicId"
+       :variable/type :Int!}
+      {:variable/name "subId"
+       :variable/type :Int!}]
+     :venia/operation
+     {:operation/type :mutation
+      :operation/name "Skip"}}))
+
 (def feed
   (v/graphql-query {:venia/operation {:operation/name "GetFeed"
                                       :operation/type :query}
@@ -297,5 +312,10 @@
     :entityId ent-id}
    [:unsubscribed]])
 
-
+(defn skip [sub-id comic-id]
+  [::gql/mutate
+   skip-mutation
+   {:subId sub-id
+    :comicId comic-id}
+   [:skipped sub-id]])
 

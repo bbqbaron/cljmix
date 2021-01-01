@@ -14,6 +14,11 @@
                                        (filter some?
                                                (set
                                                  (conj old event-val)))))
+                  :skip
+                  (let [{:keys [comicId subId]} event-val]
+                    (update-in state
+                               [:subscribed subId :skip]
+                               #(conj (or % #{}) comicId)))
                   :unsubscribe-characters
                   (assoc  state
                     :subscribed-characters

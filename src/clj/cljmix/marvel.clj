@@ -211,6 +211,7 @@
                    series (set (mapcat :series (vals subscriptions)))
                    ;; TODO use these; need to fetch another index :/
                    creators (set (mapcat :creator (vals subscriptions)))
+                   skipped (set (mapcat :skip (vals subscriptions)))
                    creator-comics
                    (set (mapcat creator->comics creators))
                    already-read (set (:read @db))
@@ -226,24 +227,28 @@
                     (filter
                       (fn [{{:keys [items]} :characters
                             issue-series :series
+                            digitalId :digitalId
                             id :id}]
-                        (or
-                          (creator-comics id)
-                          ((comp
-                             series
-                             read-string
-                             second
-                             (partial re-find #"\/(\d+)$")
-                             :resourceURI)
-                           issue-series)
-                          (some
-                            (comp
-                              characters
-                              read-string
-                              second
-                              (partial re-find #"\/(\d+)$")
-                              :resourceURI)
-                            items))))
+                        (and
+                          (not (skipped id))
+                          (not (skipped digitalId))
+                          (or
+                            (creator-comics id)
+                            ((comp
+                               series
+                               read-string
+                               second
+                               (partial re-find #"\/(\d+)$")
+                               :resourceURI)
+                             issue-series)
+                            (some
+                              (comp
+                                characters
+                                read-string
+                                second
+                                (partial re-find #"\/(\d+)$")
+                                :resourceURI)
+                              items)))))
                     (remove (comp zero? :digitalId))
                     (remove
                       (comp already-read :digitalId))
@@ -265,9 +270,12 @@
                                         (filter #(= (:type %) "onsaleDate"))
                                         first
                                         :date)]
-                          onsale-date
-                          #_(.parse date-format onsale-date))))
-                    (take 50)))}))
+                          onsale-date)))
+                    (take 50)
+                    (sort-by
+                      (comp
+                        :resourceURI
+                        :series))))}))
 
 (defrecord MarvelProvider [marvel db-provider xodus-cache]
   com.stuartsierra.component/Lifecycle

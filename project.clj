@@ -16,10 +16,11 @@
                  [prevayler-clj "3.0.1"]
                  [vincit/venia "0.2.5"]
                  [org.jetbrains.xodus/xodus-openAPI "1.3.232"]
-                 [org.jetbrains.xodus/xodus-entity-store "1.3.232"]]
+                 [org.jetbrains.xodus/xodus-entity-store "1.3.232"]
+                 [metosin/malli "0.2.1"]]
   :plugins [[lein-cljsbuild "1.1.7"]]
   :test-paths ["test/clj"]
-  :source-paths ["src/clj" "src/cljc"]
+  :source-paths ["src/clj" "src/cljc" "src/cljs"]
   :profiles
   {:dev
    {:plugins
@@ -27,15 +28,16 @@
     :resource-paths ["target" "resources"]
     :aliases {"fig" ["trampoline" "run" "-m" "figwheel.main"]
               "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]}
+    :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
     :dependencies
     [[org.clojure/tools.namespace "0.2.11"]
+     [cider/piggieback "0.5.2"]
      [com.stuartsierra/component.repl "0.2.0"]
      [com.bhauman/figwheel-main "0.2.12"]
      [com.bhauman/rebel-readline-cljs "0.1.4"]]}}
   :main cljmix.main
   :cljsbuild
-  {
-   :builds
+  {:builds
    {:client {
              :source-paths ["src/cljs" "src/cljc"]
              :compiler     {:main       cljmix.core

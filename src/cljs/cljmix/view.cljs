@@ -166,7 +166,7 @@
             es)])
        results)]))
 
-(defn show-comic [i c]
+(defn show-comic [sub-id i c]
   [:div.flex-column
    {:key i}
    (let [thumb (:thumbnail c)]
@@ -180,11 +180,16 @@
         :style button-link-style}
     (:title c)]
    [:button.pure-button
+    {:on-click #(rf/dispatch
+                  (query/skip
+                   sub-id (:digitalId c)))}
+    "Skip"]
+   [:button.pure-button
     {:on-click #(rf/dispatch [::gql/mutate
                               query/mark-read
                               {:digitalId (:digitalId c)}
                               [:marked-read (:digitalId c)]])}
-    "Dismiss"]])
+    "I've Read It"]])
 
 (defn search-form []
   (let [etype (r/atom :character)
@@ -216,7 +221,7 @@
      (map
        (fn [page]
          [:button.pure-button {:key page :on-click #(rf/dispatch [:page page]) :class (if (= cur-page page) "pure-button-primary" "") :role "link" :style {:margin "0 8px"}} page])
-       [:page/subs :page/queue])]))
+       [:page/subs :page/queue :page/game])]))
 
 (defn header []
   [:header
@@ -245,6 +250,6 @@
           [:option {:value (:id s)} (str (:id s))])
         subscriptions)]
      [grid (doall (map-indexed
-                    show-comic
+                    (partial show-comic current-sub)
                     unread))]]))
 
