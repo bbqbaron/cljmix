@@ -200,6 +200,19 @@
          (read-string
            (slurp "creator->comics.edn")))
 
+(defn is-event [nm]
+  (fn [{{:keys [items]} :events}]
+    (not-empty
+      (filter
+        (fn [{cnm :name}]
+          (re-find (re-pattern nm) cnm))
+       items))))
+
+#_
+(take 10
+      (filter (is-event "House of M")
+              (shuffle file-data)))
+
 (defn get-feed
   ([db]
    (get-feed db nil nil nil))
@@ -228,12 +241,14 @@
                       (fn [{{:keys [items]} :characters
                             issue-series :series
                             digitalId :digitalId
-                            id :id}]
+                            id :id
+                            :as comic}]
                         (and
                           (not (skipped id))
                           (not (skipped digitalId))
                           (or
                             (creator-comics id)
+                            ((is-event "House of M") comic)
                             ((comp
                                series
                                read-string
@@ -272,7 +287,7 @@
                                         :date)]
                           onsale-date)))
                     (take 50)
-                    (sort-by
+                    #_(sort-by
                       (comp
                         :resourceURI
                         :series))))}))

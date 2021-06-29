@@ -2,20 +2,20 @@
   (:require [clojure.java.io :as io]
             [com.stuartsierra.component :as component]
             [clojure.set :as set]
-            [cljmix.marvel :as marvel])
-  (:import (jetbrains.exodus.entitystore PersistentEntityStore PersistentEntityStores StoreTransactionalExecutable)))
-(require
-  '[com.walmartlabs.lacinia :as lacinia]
-  '[clojure.tools.namespace.repl :as r]
-  '[cljmix.db :as db]
-  '[cljmix.schema-gen :as sg]
-  '[cljmix.system :as system]
-  '[cljmix.main :refer [-main]]
-  '[clojure.java.browse :refer [browse-url]]
-  '[clojure.walk :as walk]
-  '[prevayler :as pv]
-  '[com.stuartsierra.component.repl :as crepl :refer [start stop reset set-init]])
-(import '(clojure.lang IPersistentMap))
+            [cljmix.marvel :as marvel]
+
+            [com.walmartlabs.lacinia :as lacinia]
+            [clojure.tools.namespace.repl :as r]
+            [cljmix.db :as db]
+            [cljmix.schema-gen :as sg]
+            [cljmix.system :as system]
+            [cljmix.main :refer [-main]]
+            [clojure.java.browse :refer [browse-url]]
+            [clojure.walk :as walk]
+            [prevayler :as pv]
+            [com.stuartsierra.component.repl :as crepl :refer [start stop reset set-init]])
+  (:import (clojure.lang IPersistentMap)
+           (jetbrains.exodus.entitystore PersistentEntityStore PersistentEntityStores StoreTransactionalExecutable)))
 
 (defn reduce-to
   "Remove all entries from a nested object that aren't a certain key,
